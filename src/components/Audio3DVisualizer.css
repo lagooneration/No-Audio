@@ -1,0 +1,175 @@
+.audio-3d-visualizer {
+  position: relative;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.audio-3d-visualizer canvas {
+  display: block;
+  border-radius: 12px;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 26, 46, 0.9);
+  color: #fff;
+  gap: 1rem;
+  z-index: 10;
+}
+
+.loading-overlay .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Controls overlay */
+.visualizer-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 5;
+}
+
+.control-button {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: #fff;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.control-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: #007bff;
+}
+
+.control-button.active {
+  background: rgba(0, 123, 255, 0.6);
+  border-color: #007bff;
+}
+
+/* Source info panel */
+.source-info-panel {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  color: #fff;
+  min-width: 200px;
+  z-index: 5;
+}
+
+.source-info-panel h4 {
+  margin: 0 0 0.5rem 0;
+  color: #007bff;
+  font-size: 1rem;
+}
+
+.source-info-panel .info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.source-info-panel .info-label {
+  color: #ccc;
+}
+
+.source-info-panel .info-value {
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Visualization modes */
+.visualization-modes {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 5;
+}
+
+.mode-button {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+}
+
+.mode-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.mode-button.active {
+  background: rgba(0, 123, 255, 0.8);
+  border-color: #007bff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .visualizer-controls,
+  .visualization-modes {
+    position: static;
+    justify-content: center;
+    margin: 0.5rem;
+  }
+  
+  .source-info-panel {
+    position: static;
+    margin: 0.5rem;
+    width: calc(100% - 1rem);
+  }
+}
+
+/* Dark theme adjustments */
+.dark .audio-3d-visualizer {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a2a2a 100%);
+}
+
+.dark .control-button,
+.dark .mode-button {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark .control-button:hover,
+.dark .mode-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark .source-info-panel {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}

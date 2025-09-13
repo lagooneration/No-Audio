@@ -1,0 +1,63 @@
+.bento-grid {
+  padding: 20px;
+}
+
+.bento-item {
+  display: block;
+  padding: 30px;
+  border-radius: 15px;
+  background-color: #f8f9fa;
+  color: #212529;
+  text-decoration: none;
+  margin-bottom: 20px;
+  transition: transform 0.2s;
+  height: 200px; /* default height */
+}
+
+.bento-item:hover {
+  transform: scale(1.02);
+  color: #212529;
+}
+
+.bento-item.full-height {
+    height: calc(400px + 20px); /* 2 * 200px + 20px margin */
+}
+
+.bento-item h3 {
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.item-1 {
+  background-color: #e9ecef;
+}
+
+.item-2 {
+  background-color: #dee2e6;
+}
+
+.item-3 {
+  background-color: #ced4da;
+}
+
+.item-4 {
+  background-color: #adb5bd;
+}
+
+.item-5 {
+    background-color: #6c757d;
+    color: white;
+}
+
+.item-5:hover {
+    color: white;
+}
+
+.item-6 {
+    background-color: #495057;
+    color: white;
+}
+
+.item-6:hover {
+    color: white;
+}

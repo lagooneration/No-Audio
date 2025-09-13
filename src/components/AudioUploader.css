@@ -1,0 +1,115 @@
+.audio-uploader {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audio-uploader:hover {
+  border-color: #888;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.audio-uploader.dragging {
+  border-color: #007bff;
+  background: rgba(0, 123, 255, 0.1);
+  transform: scale(1.02);
+}
+
+.audio-uploader.loading {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.upload-icon {
+  color: #666;
+}
+
+.audio-uploader.dragging .upload-icon {
+  color: #007bff;
+}
+
+.upload-content h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.upload-content p {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+.upload-content small {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Dark theme */
+.dark .audio-uploader {
+  border-color: #555;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.dark .audio-uploader:hover {
+  border-color: #777;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.dark .upload-content h3 {
+  color: #fff;
+}
+
+.dark .upload-content p {
+  color: #ccc;
+}
+
+.dark .upload-content small {
+  color: #999;
+}
+
+.dark .upload-icon {
+  color: #999;
+}
+
+.dark .audio-uploader.dragging .upload-icon {
+  color: #007bff;
+}
