@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { AudioFile, PluginMatch, AudioPlugin, MLAudioFeatures } from '@/types/audio';
 import { PluginMatcher, MLAudioAnalyzer } from '@/lib/audio/mlAudioAnalysis';
-import './PluginMatcherComponent.css';
+import '@/styles/PluginMatcherComponent.css';
 
 interface PluginMatcherComponentProps {
   audioFile: AudioFile | null;

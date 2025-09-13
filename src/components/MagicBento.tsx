@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { gsap } from 'gsap';
 import Link from 'next/link';
 import Image from 'next/image';
-import './MagicBento.css';
+import '@/styles/MagicBento.css';
 
 export interface BentoCardProps {
   color?: string;

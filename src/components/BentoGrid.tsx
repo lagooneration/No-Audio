@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import './BentoGrid.css';
+import '@/styles/BentoGrid.css';
 
 const BentoGrid = () => {
   return (

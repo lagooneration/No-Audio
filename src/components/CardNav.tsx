@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 // use your own icon import if react-icons is not available
 import { GoArrowUpRight } from 'react-icons/go';
-import './CardNav.css';
+import '@/styles/CardNav.css';
 
 type CardNavLink = {
   label: string;
@@ -200,8 +200,8 @@ const CardNav: React.FC<CardNavProps> = ({
             type="button"
             className={`card-nav-play-button ${disabled ? 'disabled' : ''}`}
             style={{ 
-              backgroundColor: disabled ? '#666' : buttonBgColor, 
-              color: disabled ? '#999' : buttonTextColor,
+              backgroundColor: disabled ? '#4d4d4dff' : buttonBgColor, 
+              color: disabled ? '#b9b9b9ff' : buttonTextColor,
               width: '48px',
               height: '48px',
               borderRadius: '50%',

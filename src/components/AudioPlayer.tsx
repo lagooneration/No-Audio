@@ -9,6 +9,8 @@ interface AudioPlayerProps {
   onTimeUpdate?: (currentTime: number) => void;
   onLoadedMetadata?: (duration: number) => void;
   onEnded?: () => void;
+  onPlayStateChange?: (isPlaying: boolean) => void;
+  analyserRef?: React.MutableRefObject<AnalyserNode | null>;
   className?: string;
   showControls?: boolean;
   autoPlay?: boolean;
@@ -22,6 +24,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onTimeUpdate,
   onLoadedMetadata,
   onEnded,
+  onPlayStateChange,
+  analyserRef,
   className = '',
   showControls = true,
   autoPlay = false,
@@ -36,6 +40,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
+  const internalAnalyserRef = useRef<AnalyserNode | null>(null);
   const contextManagerRef = useRef<AudioContextManager | null>(null);
   const effectProcessorRef = useRef<AudioEffectProcessor | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -53,9 +58,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         sourceRef.current.stop();
         sourceRef.current = null;
       }
+      // cleanup analyser
+      internalAnalyserRef.current = null;
+      if (analyserRef) analyserRef.current = null;
       effectProcessorRef.current?.cleanup();
     };
-  }, [audioFile, onLoadedMetadata]);
+  }, [audioFile, onLoadedMetadata, analyserRef]);
 
   useEffect(() => {
     if (gainNodeRef.current) {
@@ -122,13 +130,26 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       source.connect(gainNode);
     }
 
-    gainNode.connect(context.destination);
+    // If parent requests analyser, create and insert it
+    if (analyserRef) {
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.minDecibels = -90;
+      analyser.maxDecibels = -10;
+      analyser.smoothingTimeConstant = 0.85;
+      gainNode.connect(analyser);
+      analyser.connect(context.destination);
+      internalAnalyserRef.current = analyser;
+      analyserRef.current = analyser;
+    } else {
+      gainNode.connect(context.destination);
+    }
 
     sourceRef.current = source;
     gainNodeRef.current = gainNode;
 
     return source;
-  }, [audioFile.audioBuffer, effects, volume, playbackRate]);
+  }, [audioFile.audioBuffer, effects, volume, playbackRate, analyserRef]);
 
   const play = useCallback(async () => {
     if (isPlaying) return;
@@ -157,12 +178,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       };
 
       setIsPlaying(true);
+      onPlayStateChange?.(true);
     } catch (error) {
       console.error('Error playing audio:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [isPlaying, createAudioNodes, currentTime, duration, onEnded, loop]);
+  }, [isPlaying, createAudioNodes, currentTime, duration, onEnded, loop, onPlayStateChange]);
 
   // Update the play function ref
   useEffect(() => {
@@ -175,8 +197,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     sourceRef.current.stop();
     pauseTimeRef.current = contextManagerRef.current.getCurrentTime() - startTimeRef.current + pauseTimeRef.current;
     setIsPlaying(false);
+    onPlayStateChange?.(false);
     sourceRef.current = null;
-  }, [isPlaying]);
+  }, [isPlaying, onPlayStateChange]);
 
   const stop = useCallback(() => {
     if (sourceRef.current) {
@@ -184,10 +207,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       sourceRef.current = null;
     }
     setIsPlaying(false);
+    onPlayStateChange?.(false);
     setCurrentTime(0);
     pauseTimeRef.current = 0;
     startTimeRef.current = 0;
-  }, []);
+  }, [onPlayStateChange]);
 
   const seek = useCallback((time: number) => {
     const wasPlaying = isPlaying;
@@ -210,6 +234,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   }, [isPlaying, pause, play]);
 
   const formatTime = useCallback((time: number): string => {
+    if (!time || isNaN(time)) return "0:00";
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -254,9 +279,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         </button>
 
         <div className="time-display">
-          <span>{formatTime(currentTime)}</span>
-          <span>/</span>
-          <span>{formatTime(duration)}</span>
+          <span className="current-time">{formatTime(currentTime)}</span>
+          <span className="time-separator">/</span>
+          <span className="total-time">{formatTime(duration)}</span>
         </div>
       </div>
 
@@ -265,9 +290,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           type="range"
           className="progress-bar"
           min="0"
-          max={duration}
+          max={duration || 0.01}
+          step="0.01"
           value={currentTime}
           onChange={(e) => seek(parseFloat(e.target.value))}
+          style={{
+            background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 ${(currentTime / (duration || 0.01)) * 100}%, rgba(255, 255, 255, 0.2) ${(currentTime / (duration || 0.01)) * 100}%)`,
+          }}
         />
       </div>
 

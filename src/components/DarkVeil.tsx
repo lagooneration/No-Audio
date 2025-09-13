@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useEffect } from 'react';
 import { Renderer, Program, Mesh, Triangle, Vec2 } from 'ogl';
-import './DarkVeil.css';
+import '@/styles/DarkVeil.css';
 
 const vertex = `
 attribute vec2 position;
