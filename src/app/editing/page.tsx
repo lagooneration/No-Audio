@@ -27,6 +27,11 @@ export default function EditingPage() {
       <div className="container">
         <h1 className="text-center my-5">Audio Editing</h1>
         <p className="text-center">This is where the audio editing feature will be.</p>
+
+        <div className="rowy">
+          <div>asdf</div>
+          <div>asds</div>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,88 @@
+/* 3D Spectrogram Placeholder Styling */
+.spectrogram-3d-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.spectrogram-3d-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 1rem;
+}
+
+.spectrogram-3d-icon {
+  width: 4rem;
+  height: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.spectrogram-3d-placeholder:hover .spectrogram-3d-icon {
+  opacity: 0.8;
+}
+
+.spectrogram-3d-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-bottom: 0.5rem;
+}
+
+.spectrogram-3d-description {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  max-width: 300px;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.spectrogram-3d-status {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animation for future enhancement */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.spectrogram-3d-placeholder.coming-soon {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .spectrogram-3d-icon {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .spectrogram-3d-title {
+    font-size: 1rem;
+  }
+  
+  .spectrogram-3d-description {
+    font-size: 0.8rem;
+    max-width: 250px;
+  }
+}

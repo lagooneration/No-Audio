@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { AudioFile, AudioEffect } from '@/types/audio';
 import { AudioContextManager } from '@/lib/audio/audioUtils';
 import { AudioEffectProcessor } from '@/lib/audio/audioEffects';
+import { WaveformVisualizer } from './WaveformVisualizer';
 
 interface AudioPlayerProps {
   audioFile: AudioFile;
@@ -286,17 +287,16 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </div>
 
       <div className="progress-container">
-        <input
-          type="range"
-          className="progress-bar"
-          min="0"
-          max={duration || 0.01}
-          step="0.01"
-          value={currentTime}
-          onChange={(e) => seek(parseFloat(e.target.value))}
-          style={{
-            background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 ${(currentTime / (duration || 0.01)) * 100}%, rgba(255, 255, 255, 0.2) ${(currentTime / (duration || 0.01)) * 100}%)`,
-          }}
+        <WaveformVisualizer
+          audioFile={audioFile}
+          width={undefined}
+          height={60}
+          currentTime={currentTime}
+          onSeek={seek}
+          showProgress={true}
+          interactive={true}
+          className="audio-player-waveform"
+          samples={500}
         />
       </div>
 
