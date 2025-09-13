@@ -6,6 +6,7 @@ import { WaveformVisualizer } from "@/components/WaveformVisualizer";
 import AudioPlayer from "@/components/AudioPlayer";
 import Spectrogram from "@/components/Spectrogram";
 import StaggeredMenu from "@/components/StaggeredMenu";
+import { getMenuItemsForPage, SOCIAL_ITEMS } from "@/constants/navigation";
 import { AudioContextManager } from "@/lib/audio/audioUtils";
 import { AudioEffectProcessor } from "@/lib/audio/audioEffects";
 import { MLAudioAnalyzer } from "@/lib/audio/mlAudioAnalysis";
@@ -167,27 +168,15 @@ export default function AnalysisPage() {
 
   // Removed CardNav items; analysis is shown in compact cards below
 
-  // Menu items for navigation
-  const menuItems = [
-    { label: 'Beats', ariaLabel: 'Beat Generator', link: '/beats' },
-    { label: 'Chords', ariaLabel: 'Chord Generator', link: '/chords' },
-    { label: 'Editing', ariaLabel: 'Audio Editing', link: '/editing' },
-    { label: '3D Sound', ariaLabel: '3D Sound Editor', link: '/3d-sound-editor' },
-    { label: 'Plugin Matcher', ariaLabel: 'Plugin Sound Matcher', link: '/plugin-sound-matcher' }
-  ];
-
-  const socialItems = [
-    { label: 'GitHub', link: 'https://github.com' },
-    { label: 'LinkedIn', link: 'https://linkedin.com' }
-  ];
+  // Menu items for navigation (excluding current page)
+  const menuItems = getMenuItemsForPage('/analysis');
 
   return (
     <main>
-    <div style={{ height: '100vh', background: '#1a1a1a', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
       <StaggeredMenu
         position="right"
         items={menuItems}
-        socialItems={socialItems}
+        socialItems={SOCIAL_ITEMS}
         displaySocials={true}
         displayItemNumbering={true}
         menuButtonColor="#fff"
@@ -199,12 +188,19 @@ export default function AnalysisPage() {
         onMenuOpen={() => console.log('Menu opened')}
         onMenuClose={() => console.log('Menu closed')}
       />
-      </div>
-      <div className="container mx-auto px-4 lg:h-screen lg:overflow-hidden">
+      
+      <div 
+        className="min-h-screen" 
+        style={{ 
+          background: '#1a1a1a',
+          paddingTop: '0'
+        }}
+      >
+        <div className="container mx-auto px-4 lg:h-screen lg:overflow-hidden">
 
-      <div className="max-w-7xl mx-auto h-full flex flex-col gap-4 py-6 overflow-y-auto lg:overflow-hidden">
+      <div className="max-w-7xl mx-auto h-screen flex flex-col gap-4 py-6 overflow-y-auto lg:overflow-hidden">
         {!audioFile && (
-          <div className="flex-1 min-h-0 flex flex-col items-center justify-center mb-5">
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center">
             <AudioUploader onFileLoad={handleFileUpload} onError={handleFileError} className="max-w-2xl mx-auto" />
           </div>
         )}
@@ -310,6 +306,7 @@ export default function AnalysisPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
       </div>
     </main>

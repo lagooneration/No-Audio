@@ -1,25 +1,18 @@
+"use client";
+
 import StaggeredMenu from "@/components/StaggeredMenu";
+import { getMenuItemsForPage, SOCIAL_ITEMS } from "@/constants/navigation";
 
 export default function ThreeDSoundEditorPage() {
-  const menuItems = [
-    { label: 'Analysis', ariaLabel: 'Audio Analysis', link: '/analysis' },
-    { label: 'Beats', ariaLabel: 'Beat Generator', link: '/beats' },
-    { label: 'Chords', ariaLabel: 'Chord Generator', link: '/chords' },
-    { label: 'Editing', ariaLabel: 'Audio Editing', link: '/editing' },
-    { label: 'Plugin Matcher', ariaLabel: 'Plugin Sound Matcher', link: '/plugin-sound-matcher' }
-  ];
-
-  const socialItems = [
-    { label: 'GitHub', link: 'https://github.com' },
-    { label: 'LinkedIn', link: 'https://linkedin.com' }
-  ];
+  // Menu items for navigation (excluding current page)
+  const menuItems = getMenuItemsForPage('/3d-sound-editor');
 
   return (
     <div style={{ height: '100vh', background: '#1a1a1a' }}>
       <StaggeredMenu
         position="right"
         items={menuItems}
-        socialItems={socialItems}
+        socialItems={SOCIAL_ITEMS}
         displaySocials={true}
         displayItemNumbering={true}
         menuButtonColor="#fff"

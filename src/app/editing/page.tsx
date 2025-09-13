@@ -1,25 +1,18 @@
+"use client";
+
 import StaggeredMenu from "@/components/StaggeredMenu";
+import { getMenuItemsForPage, SOCIAL_ITEMS } from "@/constants/navigation";
 
 export default function EditingPage() {
-  const menuItems = [
-    { label: 'Analysis', ariaLabel: 'Audio Analysis', link: '/analysis' },
-    { label: 'Beats', ariaLabel: 'Beat Generator', link: '/beats' },
-    { label: 'Chords', ariaLabel: 'Chord Generator', link: '/chords' },
-    { label: '3D Sound', ariaLabel: '3D Sound Editor', link: '/3d-sound-editor' },
-    { label: 'Plugin Matcher', ariaLabel: 'Plugin Sound Matcher', link: '/plugin-sound-matcher' }
-  ];
-
-  const socialItems = [
-    { label: 'GitHub', link: 'https://github.com' },
-    { label: 'LinkedIn', link: 'https://linkedin.com' }
-  ];
+  // Menu items for navigation (excluding current page)
+  const menuItems = getMenuItemsForPage('/editing');
 
   return (
     <div style={{ height: '100vh', background: '#1a1a1a' }}>
       <StaggeredMenu
         position="right"
         items={menuItems}
-        socialItems={socialItems}
+        socialItems={SOCIAL_ITEMS}
         displaySocials={true}
         displayItemNumbering={true}
         menuButtonColor="#fff"

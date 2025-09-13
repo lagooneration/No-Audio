@@ -1,26 +1,19 @@
+"use client";
+
 import Image from "next/image";
 import StaggeredMenu from "@/components/StaggeredMenu";
+import { getMenuItemsForPage, SOCIAL_ITEMS } from "@/constants/navigation";
 
 export default function BeatsPage() {
-  const menuItems = [
-    { label: 'Analysis', ariaLabel: 'Audio Analysis', link: '/analysis' },
-    { label: 'Chords', ariaLabel: 'Chord Generator', link: '/chords' },
-    { label: 'Editing', ariaLabel: 'Audio Editing', link: '/editing' },
-    { label: '3D Sound', ariaLabel: '3D Sound Editor', link: '/3d-sound-editor' },
-    { label: 'Plugin Matcher', ariaLabel: 'Plugin Sound Matcher', link: '/plugin-sound-matcher' }
-  ];
-
-  const socialItems = [
-    { label: 'GitHub', link: 'https://github.com' },
-    { label: 'LinkedIn', link: 'https://linkedin.com' }
-  ];
+  // Menu items for navigation (excluding current page)
+  const menuItems = getMenuItemsForPage('/beats');
 
   return (
     <div style={{ height: '100vh', background: '#1a1a1a' }}>
       <StaggeredMenu
         position="right"
         items={menuItems}
-        socialItems={socialItems}
+        socialItems={SOCIAL_ITEMS}
         displaySocials={true}
         displayItemNumbering={true}
         menuButtonColor="#fff"
