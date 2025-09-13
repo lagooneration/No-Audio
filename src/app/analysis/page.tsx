@@ -16,6 +16,8 @@ import { AudioFile, MLAudioFeatures } from "@/types/audio";
 import "@/styles/AudioUploader.css";
 import "@/styles/WaveformVisualizer.css";
 import "@/styles/AudioPlayer.css";
+import "@/styles/BentoGrid.css";
+
 
 export default function AnalysisPage() {
   const [audioFile, setAudioFile] = useState<AudioFile | null>(null);
@@ -165,7 +167,7 @@ export default function AnalysisPage() {
   );
 
   // formatting helper removed (not used in compact cards)
-
+   
   // Removed CardNav items; analysis is shown in compact cards below
 
   // Menu items for navigation (excluding current page)
@@ -198,33 +200,18 @@ export default function AnalysisPage() {
       >
         <div className="container mx-auto px-4 lg:h-screen lg:overflow-hidden">
 
-      <div className="max-w-7xl mx-auto h-screen flex flex-col gap-4 py-6 overflow-y-auto lg:overflow-hidden">
+      <div className="max-w-7xl mx-auto flex flex-col gap-4 py-6 overflow-y-auto lg:overflow-hidden">
         {!audioFile && (
           <div className="flex-1 min-h-0 flex flex-col items-center justify-center">
             <AudioUploader onFileLoad={handleFileUpload} onError={handleFileError} className="max-w-2xl mx-auto" />
           </div>
         )}
 
-        {audioFile && (
-          <div className="bg-gray-900 rounded-lg shadow p-3">
-            <AudioPlayer
-              audioFile={audioFile}
-              onTimeUpdate={setCurrentTime}
-              onEnded={() => setIsPlaying(false)}
-              onPlayStateChange={setIsPlaying}
-              analyserRef={analyserRef}
-              className=""
-              showControls={true}
-              autoPlay={false}
-              loop={false}
-              volume={1}
-            />
-          </div>
-        )}
+        
 
         {audioFile && (
-          <div className="flex-1 min-h-0">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full min-h-0">
+          <div className="flex-1 min-h-0 mt-5">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full min-h-full">
               <div className="bg-gray-800 rounded-lg p-3 h-64 lg:h-full min-h-0 flex flex-col lg:col-span-2">
                 <div className="text-sm font-semibold text-blue-300 mb-2">Waveform</div>
                 <div className="flex-1 min-h-0">
@@ -244,68 +231,145 @@ export default function AnalysisPage() {
                   <Spectrogram analyser={analyserRef.current} isPlaying={isPlaying} className="h-full" />
                 </div>
               </div>
-              {/* Compact analysis cards */}
-              <div className="lg:col-span-3 grid grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-3">
-                <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                  <div className="text-xs text-gray-400">Duration</div>
-                  <div className="text-lg font-semibold text-white">{audioFile.duration.toFixed(2)}s</div>
+
+              {audioFile && (
+                <div className="bg-gray-900 rounded-lg shadow p-3">
+                  <AudioPlayer
+                    audioFile={audioFile}
+                    onTimeUpdate={setCurrentTime}
+                    onEnded={() => setIsPlaying(false)}
+                    onPlayStateChange={setIsPlaying}
+                    analyserRef={analyserRef}
+                    className=""
+                    showControls={true}
+                    autoPlay={false}
+                    loop={false}
+                    volume={1}
+                  />
                 </div>
-                <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                  <div className="text-xs text-gray-400">Sample Rate</div>
-                  <div className="text-lg font-semibold text-white">{audioFile.sampleRate} Hz</div>
+              )}
+
+              {/* Analysis Results in Bento Grid Format */}
+              <div className="analysis-bento-grid">
+                <h3 className="text-white text-lg font-semibold mb-4">Audio Analysis</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Basic Audio Information */}
+                  <div className="stats shadow bg-gray-800">
+                    <div className="stat">
+                      <div className="stat-title text-gray-400">Duration</div>
+                      <div className="stat-value text-white">{audioFile.duration.toFixed(2)}s</div>
+                      <div className="stat-desc text-gray-500">Audio length</div>
+                    </div>
+                  </div>
+                  
+                  <div className="stats shadow bg-gray-800">
+                    <div className="stat">
+                      <div className="stat-title text-gray-400">Sample Rate</div>
+                      <div className="stat-value text-white">{audioFile.sampleRate} Hz</div>
+                      <div className="stat-desc text-gray-500">Audio quality</div>
+                    </div>
+                  </div>
+                  
+                  <div className="stats shadow bg-gray-800">
+                    <div className="stat">
+                      <div className="stat-title text-gray-400">Channels</div>
+                      <div className="stat-value text-white">{audioFile.channels}</div>
+                      <div className="stat-desc text-gray-500">Audio channels</div>
+                    </div>
+                  </div>
+
+                  {/* Analysis Results */}
+                  {analysisResults && (
+                    <>
+                      <div className="stats shadow bg-gray-800">
+                        <div className="stat">
+                          <div className="stat-title text-gray-400">Spectral Centroid</div>
+                          <div className="stat-value text-white">{analysisResults.spectralFeatures.centroid.toFixed(0)} Hz</div>
+                          <div className="stat-desc text-gray-500">Spectral brightness</div>
+                        </div>
+                      </div>
+                      
+                      <div className="stats shadow bg-gray-800">
+                        <div className="stat">
+                          <div className="stat-title text-gray-400">Bandwidth</div>
+                          <div className="stat-value text-white">{analysisResults.spectralFeatures.bandwidth.toFixed(0)} Hz</div>
+                          <div className="stat-desc text-gray-500">Spectral width</div>
+                        </div>
+                      </div>
+                      
+                      <div className="stats shadow bg-gray-800">
+                        <div className="stat">
+                          <div className="stat-title text-gray-400">Rolloff</div>
+                          <div className="stat-value text-white">{analysisResults.spectralFeatures.rolloff.toFixed(0)} Hz</div>
+                          <div className="stat-desc text-gray-500">Spectral energy</div>
+                        </div>
+                      </div>
+                      
+                      <div className="stats shadow bg-gray-800">
+                        <div className="stat">
+                          <div className="stat-title text-gray-400">Spectral Flatness</div>
+                          <div className="stat-value text-white">{analysisResults.spectralFeatures.flatness.toFixed(3)}</div>
+                          <div className="stat-desc text-gray-500">Noise-like quality</div>
+                        </div>
+                      </div>
+                      
+                      <div className="stats shadow bg-gray-800">
+                        <div className="stat">
+                          <div className="stat-title text-gray-400">Zero Crossing Rate</div>
+                          <div className="stat-value text-white">{analysisResults.temporalFeatures.zcr.toFixed(0)} Hz</div>
+                          <div className="stat-desc text-gray-500">Signal changes</div>
+                        </div>
+                      </div>
+                      
+                      <div className="stats shadow bg-gray-800">
+                        <div className="stat">
+                          <div className="stat-title text-gray-400">Energy</div>
+                          <div className="stat-value text-white">{analysisResults.temporalFeatures.energy.toFixed(3)}</div>
+                          <div className="stat-desc text-gray-500">Signal energy</div>
+                        </div>
+                      </div>
+                      
+                      <div className="stats shadow bg-gray-800">
+                        <div className="stat">
+                          <div className="stat-title text-gray-400">RMS</div>
+                          <div className="stat-value text-white">{analysisResults.temporalFeatures.rms.toFixed(3)}</div>
+                          <div className="stat-desc text-gray-500">Average power</div>
+                        </div>
+                      </div>
+                      
+                      <div className="stats shadow bg-gray-800">
+                        <div className="stat">
+                          <div className="stat-title text-gray-400">Pitch</div>
+                          <div className="stat-value text-white">{analysisResults.harmonicFeatures.pitch.toFixed(0)} Hz</div>
+                          <div className="stat-desc text-gray-500">Fundamental frequency</div>
+                        </div>
+                      </div>
+                      
+                      <div className="stats shadow bg-gray-800">
+                        <div className="stat">
+                          <div className="stat-title text-gray-400">Harmonicity</div>
+                          <div className="stat-value text-white">{analysisResults.harmonicFeatures.harmonicity.toFixed(3)}</div>
+                          <div className="stat-desc text-gray-500">Harmonic content</div>
+                        </div>
+                      </div>
+                      
+                      <div className="stats shadow bg-gray-800">
+                        <div className="stat">
+                          <div className="stat-title text-gray-400">Inharmonicity</div>
+                          <div className="stat-value text-white">{analysisResults.harmonicFeatures.inharmonicity.toFixed(3)}</div>
+                          <div className="stat-desc text-gray-500">Non-harmonic content</div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                  <div className="text-xs text-gray-400">Channels</div>
-                  <div className="text-lg font-semibold text-white">{audioFile.channels}</div>
-                </div>
-                {analysisResults && (
-                  <>
-                    <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                      <div className="text-xs text-gray-400">Centroid</div>
-                      <div className="text-lg font-semibold text-white">{analysisResults.spectralFeatures.centroid.toFixed(0)} Hz</div>
-                    </div>
-                    <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                      <div className="text-xs text-gray-400">Bandwidth</div>
-                      <div className="text-lg font-semibold text-white">{analysisResults.spectralFeatures.bandwidth.toFixed(0)} Hz</div>
-                    </div>
-                    <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                      <div className="text-xs text-gray-400">Rolloff</div>
-                      <div className="text-lg font-semibold text-white">{analysisResults.spectralFeatures.rolloff.toFixed(0)} Hz</div>
-                    </div>
-                    <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                      <div className="text-xs text-gray-400">Flatness</div>
-                      <div className="text-lg font-semibold text-white">{analysisResults.spectralFeatures.flatness.toFixed(3)}</div>
-                    </div>
-                    <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                      <div className="text-xs text-gray-400">ZCR</div>
-                      <div className="text-lg font-semibold text-white">{analysisResults.temporalFeatures.zcr.toFixed(0)} Hz</div>
-                    </div>
-                    <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                      <div className="text-xs text-gray-400">Energy</div>
-                      <div className="text-lg font-semibold text-white">{analysisResults.temporalFeatures.energy.toFixed(3)}</div>
-                    </div>
-                    <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                      <div className="text-xs text-gray-400">RMS</div>
-                      <div className="text-lg font-semibold text-white">{analysisResults.temporalFeatures.rms.toFixed(3)}</div>
-                    </div>
-                    <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                      <div className="text-xs text-gray-400">Pitch</div>
-                      <div className="text-lg font-semibold text-white">{analysisResults.harmonicFeatures.pitch.toFixed(0)} Hz</div>
-                    </div>
-                    <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                      <div className="text-xs text-gray-400">Harmonicity</div>
-                      <div className="text-lg font-semibold text-white">{analysisResults.harmonicFeatures.harmonicity.toFixed(3)}</div>
-                    </div>
-                    <div className="bg-gray-800 rounded-md p-3 text-center col-span-1">
-                      <div className="text-xs text-gray-400">Inharmonicity</div>
-                      <div className="text-lg font-semibold text-white">{analysisResults.harmonicFeatures.inharmonicity.toFixed(3)}</div>
-                    </div>
-                  </>
-                )}
               </div>
             </div>
           </div>
         )}
+
+
+        
         </div>
       </div>
       </div>
