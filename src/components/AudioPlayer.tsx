@@ -11,6 +11,7 @@ interface AudioPlayerProps {
   onLoadedMetadata?: (duration: number) => void;
   onEnded?: () => void;
   onPlayStateChange?: (isPlaying: boolean) => void;
+  onSeek?: (time: number) => void;
   analyserRef?: React.MutableRefObject<AnalyserNode | null>;
   className?: string;
   showControls?: boolean;
@@ -26,6 +27,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onLoadedMetadata,
   onEnded,
   onPlayStateChange,
+  onSeek,
   analyserRef,
   className = '',
   showControls = true,
@@ -221,10 +223,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
     pauseTimeRef.current = Math.max(0, Math.min(time, duration));
     setCurrentTime(pauseTimeRef.current);
+    if (onSeek) {
+      onSeek(pauseTimeRef.current);
+    }
     if (wasPlaying) {
       setTimeout(play, 50);
     }
-  }, [isPlaying, pause, play, duration]);
+  }, [isPlaying, pause, play, duration, onSeek]);
 
   const togglePlayPause = useCallback(() => {
     if (isPlaying) {
@@ -290,7 +295,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         <WaveformVisualizer
           audioFile={audioFile}
           width={undefined}
-          height={80}
+          height={60}
           currentTime={currentTime}
           onSeek={seek}
           showProgress={true}

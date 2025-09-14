@@ -24,13 +24,37 @@ export default function EditingPage() {
         onMenuOpen={() => console.log('Menu opened')}
         onMenuClose={() => console.log('Menu closed')}
       />
-      <div className="container">
+      {/* <div className="container">
         <h1 className="text-center my-5">Audio Editing</h1>
         <p className="text-center">This is where the audio editing feature will be.</p>
 
         <div className="rowy">
           <div>asdf</div>
           <div>asds</div>
+        </div>
+      </div> */}
+      <div className="p-4 flex justify-center items-center text-center w-full">
+        <div className="font-bold text-white mt-5">
+
+        Analysis
+        <div className="rowy px-5">
+          <div>
+            2D Spectrogram
+          </div>
+          <div>
+            3D Spectrogram
+          </div>
+
+        </div>
+
+        <div className="">
+          card charts
+        </div>
+
+        <div className="">
+          audio player
+          </div>
+          
         </div>
       </div>
     </div>

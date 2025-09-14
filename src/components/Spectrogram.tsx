@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import "../styles/Spectrogram.css";
 
 export interface SpectrogramProps {
   analyser: AnalyserNode | null;
@@ -65,10 +66,10 @@ export const Spectrogram: React.FC<SpectrogramProps> = ({
       ctx.drawImage(canvas, -1, 0);
 
       // Read new frequency data
-  // TS DOM lib may mismatch Float32Array generic with WebAudio types in some environments
-  // @ts-expect-error WebAudio Float32Array typing mismatch (ArrayBuffer vs ArrayBufferLike)
-  analyser.getFloatFrequencyData(freqDataRef.current);
-  const data = freqDataRef.current as Float32Array;
+      // TS DOM lib may mismatch Float32Array generic with WebAudio types in some environments
+      // @ts-expect-error WebAudio Float32Array typing mismatch (ArrayBuffer vs ArrayBufferLike)
+      analyser.getFloatFrequencyData(freqDataRef.current);
+      const data = freqDataRef.current as Float32Array;
 
       // Draw the new vertical column at the right edge
       const colX = canvas.width - 1;
@@ -111,8 +112,16 @@ export const Spectrogram: React.FC<SpectrogramProps> = ({
   }, [analyser, isPlaying]);
 
   return (
-    <div className={`w-full h-full overflow-hidden rounded-md bg-black ${className}`}>
-      <canvas ref={canvasRef} className="block w-full h-full" />
+    <div className={`spectrogram-container ${className}`}>
+      <canvas ref={canvasRef} className="spectrogram-canvas" />
+      <div className="spectrogram-label">
+        2D Spectrogram
+        {analyser ? (
+          <span className="spectrogram-status status-active"></span>
+        ) : (
+          <span className="spectrogram-status status-inactive"></span>
+        )}
+      </div>
     </div>
   );
 };

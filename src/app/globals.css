@@ -51,8 +51,8 @@ a {
 .rowy {
   display: flex;
   flex-direction: row;
-  align-items: stretch;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: space-evenly;
 }
 
 
