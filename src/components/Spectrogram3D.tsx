@@ -21,7 +21,7 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
-  const controlsRef = useRef<any | null>(null);
+  const controlsRef = useRef<unknown | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const dataRef = useRef<Uint8Array | null>(null);
   const heightsRef = useRef<Uint8Array | null>(null);
@@ -37,7 +37,6 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
   const XSEGMENTS = TIME_SAMPLES;
   const YSEGMENTS = FREQUENCY_SAMPLES;
   const XSEGMENTSIZE = XSIZE / XSEGMENTS;
-  const YSEGMENTSIZE = YSIZE / YSEGMENTS;
   const N_VERTICES = (FREQUENCY_SAMPLES + 1) * (TIME_SAMPLES + 1);
 
   const initThreeJS = useCallback(() => {
@@ -131,18 +130,30 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
         varying vec3 vColor;
         
         vec3 getJetColor(float value) {
-          // Jet colormap implementation
-          float v = clamp(value, 0.0, 1.0) * 4.0;
+          // Enhanced jet colormap implementation for better visibility
+          float v = clamp(value, 0.0, 1.0);
           
           vec3 color;
-          if (v < 1.0) {
-            color = vec3(0.0, 0.0, 0.5 + v/2.0);
-          } else if (v < 2.0) {
-            color = vec3(0.0, (v - 1.0)/1.0, 1.0);
-          } else if (v < 3.0) {
-            color = vec3((v - 2.0)/1.0, 1.0, 1.0 - (v - 2.0)/1.0);
+          if (v < 0.2) {
+            // Blue to Cyan (0-0.2)
+            float t = v / 0.2;
+            color = vec3(0.0, t, 1.0);
+          } else if (v < 0.4) {
+            // Cyan to Green (0.2-0.4)
+            float t = (v - 0.2) / 0.2;
+            color = vec3(0.0, 1.0, 1.0 - t);
+          } else if (v < 0.6) {
+            // Green to Yellow (0.4-0.6)
+            float t = (v - 0.4) / 0.2;
+            color = vec3(t, 1.0, 0.0);
+          } else if (v < 0.8) {
+            // Yellow to Red (0.6-0.8)
+            float t = (v - 0.6) / 0.2;
+            color = vec3(1.0, 1.0 - t, 0.0);
           } else {
-            color = vec3(1.0, 1.0 - (v - 3.0)/1.0, 0.0);
+            // Red to White (0.8-1.0)
+            float t = (v - 0.8) / 0.2;
+            color = vec3(1.0, t, t);
           }
           return color;
         }
@@ -183,7 +194,7 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
     renderer.render(scene, camera);
   }, [FREQUENCY_SAMPLES, YSIZE, XHALFSIZE, YHALFSIZE, XSEGMENTS, YSEGMENTS, XSEGMENTSIZE, N_VERTICES]);
 
-  // Generate a color map similar to the "jet" colormap
+  // Generate a color map similar to the "jet" colormap with enhanced visibility
   const generateJetColormap = (numColors: number): [number, number, number][] => {
     const colors: [number, number, number][] = [];
     
@@ -191,26 +202,36 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
       const t = i / (numColors - 1);
       let r, g, b;
       
-      if (t < 0.125) {
+      if (t < 0.2) {
+        // Blue to Cyan (0-0.2)
+        const norm = t / 0.2;
         r = 0;
-        g = 0;
-        b = 0.5 + 4 * t;
-      } else if (t < 0.375) {
-        r = 0;
-        g = 4 * (t - 0.125);
+        g = norm;
         b = 1;
-      } else if (t < 0.625) {
-        r = 4 * (t - 0.375);
+      } else if (t < 0.4) {
+        // Cyan to Green (0.2-0.4)
+        const norm = (t - 0.2) / 0.2;
+        r = 0;
         g = 1;
-        b = 1 - 4 * (t - 0.375);
-      } else if (t < 0.875) {
+        b = 1 - norm;
+      } else if (t < 0.6) {
+        // Green to Yellow (0.4-0.6)
+        const norm = (t - 0.4) / 0.2;
+        r = norm;
+        g = 1;
+        b = 0;
+      } else if (t < 0.8) {
+        // Yellow to Red (0.6-0.8)
+        const norm = (t - 0.6) / 0.2;
         r = 1;
-        g = 1 - 4 * (t - 0.625);
+        g = 1 - norm;
         b = 0;
       } else {
-        r = 1 - 4 * (t - 0.875);
-        g = 0;
-        b = 0;
+        // Red to White (0.8-1.0)
+        const norm = (t - 0.8) / 0.2;
+        r = 1;
+        g = norm;
+        b = norm;
       }
       
       colors.push([r, g, b]);
@@ -236,13 +257,24 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
         }
       }
 
-      // Shift existing data to the left
-      const startVal = FREQUENCY_SAMPLES + 1;
-      const endVal = N_VERTICES - startVal;
-      heightsRef.current.copyWithin(0, startVal, N_VERTICES);
-      
-      // Insert new data at the end
-      heightsRef.current.set(dataRef.current, endVal);
+      if (isPlaying) {
+        // Shift existing data to the left (scrolling effect) - only when playing
+        const startVal = FREQUENCY_SAMPLES + 1;
+        const endVal = N_VERTICES - startVal;
+        heightsRef.current.copyWithin(0, startVal, N_VERTICES);
+        
+        // Insert new data at the end
+        heightsRef.current.set(dataRef.current, endVal);
+      } else {
+        // When not playing, create a static visualization
+        // Fill the entire heightsRef with the current frequency data
+        for (let i = 0; i < TIME_SAMPLES + 1; i++) {
+          const offset = i * (FREQUENCY_SAMPLES + 1);
+          for (let j = 0; j < FREQUENCY_SAMPLES; j++) {
+            heightsRef.current[offset + j] = dataRef.current[j];
+          }
+        }
+      }
       
       // Update the geometry with new displacement values
       if (meshRef.current.geometry) {
@@ -258,24 +290,26 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
     } catch (error) {
       console.error('Error updating spectrogram geometry:', error);
     }
-  }, [analyser, N_VERTICES, FREQUENCY_SAMPLES]);
+  }, [analyser, N_VERTICES, FREQUENCY_SAMPLES, TIME_SAMPLES, isPlaying]);
 
   const animate = useCallback(() => {
     if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
     
     animationFrameRef.current = requestAnimationFrame(animate);
     
-    if (isPlaying && analyser) {
+    // Always update geometry when analyser is available
+    // This ensures visualization even when paused
+    if (analyser) {
       updateGeometry();
-    }
-    
-    // Add some gentle camera animation only when playing
-    if (cameraRef.current && isPlaying) {
-      const time = Date.now() * 0.0005; // Slower animation
-      const radius = 25;
-      cameraRef.current.position.x = Math.sin(time) * radius * 0.15;
-      cameraRef.current.position.y = Math.cos(time) * radius * 0.05 + 10;
-      cameraRef.current.lookAt(0, 0, 0);
+      
+      // Add some gentle camera animation only when playing
+      if (isPlaying) {
+        const time = Date.now() * 0.0005; // Slower animation
+        const radius = 25;
+        cameraRef.current.position.x = Math.sin(time) * radius * 0.15;
+        cameraRef.current.position.y = Math.cos(time) * radius * 0.05 + 10;
+        cameraRef.current.lookAt(0, 0, 0);
+      }
     }
     
     rendererRef.current.render(sceneRef.current, cameraRef.current);

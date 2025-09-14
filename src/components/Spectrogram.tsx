@@ -52,7 +52,7 @@ export const Spectrogram: React.FC<SpectrogramProps> = ({
     if (!ctx) return;
 
     const draw = () => {
-      if (!analyser || !ctx) {
+      if (!analyser) {
         rafRef.current = requestAnimationFrame(draw);
         return;
       }
@@ -62,8 +62,13 @@ export const Spectrogram: React.FC<SpectrogramProps> = ({
         freqDataRef.current = new Float32Array(analyser.frequencyBinCount);
       }
 
-      // Shift existing image left by 1 pixel for scrolling effect
-      ctx.drawImage(canvas, -1, 0);
+      // Only shift existing image if playing - creates scrolling effect
+      if (isPlaying) {
+        ctx.drawImage(canvas, -1, 0);
+      } else {
+        // When not playing, clear canvas to draw static spectrum
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
 
       // Read new frequency data
       // TS DOM lib may mismatch Float32Array generic with WebAudio types in some environments
@@ -71,41 +76,122 @@ export const Spectrogram: React.FC<SpectrogramProps> = ({
       analyser.getFloatFrequencyData(freqDataRef.current);
       const data = freqDataRef.current as Float32Array;
 
-      // Draw the new vertical column at the right edge
-      const colX = canvas.width - 1;
       const bins = data.length;
 
-      // Map each bin to a vertical pixel. If more pixels than bins, we stretch; if fewer, we sample.
-      for (let y = 0; y < canvas.height; y++) {
-        // Invert so low frequencies at the bottom, highs at the top
-        const t = 1 - y / (canvas.height - 1);
-        const bin = Math.min(bins - 1, Math.floor(t * bins));
-        // data are decibels (negative values). Map to 0..1 based on analyser's range
-        const vDb = data[bin];
-        const minDb = analyser.minDecibels ?? -100;
-        const maxDb = analyser.maxDecibels ?? -30;
-        const norm = Math.min(1, Math.max(0, (vDb - minDb) / (maxDb - minDb)));
+      if (isPlaying) {
+        // Draw just the new column at the right edge for scrolling effect
+        const colX = canvas.width - 1;
+        for (let y = 0; y < canvas.height; y++) {
+          // Invert so low frequencies at the bottom, highs at the top
+          const t = 1 - y / (canvas.height - 1);
+          const bin = Math.min(bins - 1, Math.floor(t * bins));
+          // data are decibels (negative values). Map to 0..1 based on analyser's range
+          const vDb = data[bin];
+          const minDb = analyser.minDecibels ?? -100;
+          const maxDb = analyser.maxDecibels ?? -30;
+          const norm = Math.min(1, Math.max(0, (vDb - minDb) / (maxDb - minDb)));
 
-        // Color mapping: dark -> bright using HSV-like ramp
-        // Convert magnitude to hue (blue to red) and brightness
-        const hue = 260 - norm * 260; // 260 (blue) to 0 (red)
-        const light = 10 + norm * 50; // 10% to 60%
-        ctx.fillStyle = `hsl(${hue}, 95%, ${light}%)`;
+        // Enhanced color mapping for better visibility
+        // Use a jet-like colormap (blue -> cyan -> green -> yellow -> red)
+        let r, g, b;
+        
+        if (norm < 0.2) {
+          // Blue to Cyan (0-0.2)
+          const t = norm / 0.2;
+          r = 0;
+          g = Math.floor(t * 255);
+          b = 255;
+        } else if (norm < 0.4) {
+          // Cyan to Green (0.2-0.4)
+          const t = (norm - 0.2) / 0.2;
+          r = 0;
+          g = 255;
+          b = Math.floor(255 * (1 - t));
+        } else if (norm < 0.6) {
+          // Green to Yellow (0.4-0.6)
+          const t = (norm - 0.4) / 0.2;
+          r = Math.floor(t * 255);
+          g = 255;
+          b = 0;
+        } else if (norm < 0.8) {
+          // Yellow to Red (0.6-0.8)
+          const t = (norm - 0.6) / 0.2;
+          r = 255;
+          g = Math.floor(255 * (1 - t));
+          b = 0;
+        } else {
+          // Red to White (0.8-1.0)
+          const t = (norm - 0.8) / 0.2;
+          r = 255;
+          g = Math.floor(t * 255);
+          b = Math.floor(t * 255);
+        }
+        
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
         ctx.fillRect(colX, y, 1, 1);
+      }
+      } else {
+        // Draw the entire spectrum when not playing (static view)
+        const barWidth = Math.max(1, Math.floor(canvas.width / bins));
+        
+        for (let bin = 0; bin < bins; bin++) {
+          // data are decibels (negative values). Map to 0..1 based on analyser's range
+          const vDb = data[bin];
+          const minDb = analyser.minDecibels ?? -100;
+          const maxDb = analyser.maxDecibels ?? -30;
+          const norm = Math.min(1, Math.max(0, (vDb - minDb) / (maxDb - minDb)));
+          
+          // Enhanced color mapping for better visibility
+          let r, g, b;
+          
+          if (norm < 0.2) {
+            const t = norm / 0.2;
+            r = 0;
+            g = Math.floor(t * 255);
+            b = 255;
+          } else if (norm < 0.4) {
+            const t = (norm - 0.2) / 0.2;
+            r = 0;
+            g = 255;
+            b = Math.floor(255 * (1 - t));
+          } else if (norm < 0.6) {
+            const t = (norm - 0.4) / 0.2;
+            r = Math.floor(t * 255);
+            g = 255;
+            b = 0;
+          } else if (norm < 0.8) {
+            const t = (norm - 0.6) / 0.2;
+            r = 255;
+            g = Math.floor(255 * (1 - t));
+            b = 0;
+          } else {
+            const t = (norm - 0.8) / 0.2;
+            r = 255;
+            g = Math.floor(t * 255);
+            b = Math.floor(t * 255);
+          }
+          
+          const x = bin * barWidth;
+          const height = Math.max(1, Math.floor(norm * canvas.height));
+          const y = canvas.height - height;
+          
+          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+          ctx.fillRect(x, y, barWidth, height);
+        }
       }
 
       rafRef.current = requestAnimationFrame(draw);
     };
 
-    // Only animate when playing to save resources
-    if (isPlaying) {
+    // Always animate when analyser is available, but only scroll when playing
+    if (analyser) {
       rafRef.current = requestAnimationFrame(draw);
       return () => {
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       };
     } else {
-      // If paused, cancel RAF
+      // If no analyser, cancel RAF
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }

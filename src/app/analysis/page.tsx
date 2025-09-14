@@ -27,6 +27,7 @@ export default function AnalysisPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate] = useState(1);
+  const [analyserVersion, setAnalyserVersion] = useState(0);
 
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
@@ -52,9 +53,11 @@ export default function AnalysisPage() {
     console.error("File upload error:", error);
   }, []);
 
+  // Initialize audio context and processor
   useEffect(() => {
     contextManagerRef.current = AudioContextManager.getInstance();
     effectProcessorRef.current = new AudioEffectProcessor();
+    
     return () => {
       if (sourceRef.current) {
         sourceRef.current.stop();
@@ -62,7 +65,7 @@ export default function AnalysisPage() {
       }
       effectProcessorRef.current?.cleanup();
     };
-  }, [audioFile]);
+  }, []);
 
   const updateTime = useCallback(() => {
     if (isPlaying && contextManagerRef.current && audioFile) {
@@ -90,11 +93,42 @@ export default function AnalysisPage() {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
   }, [isPlaying, updateTime]);
-
+  
   const createAudioNodes = useCallback(async () => {
     if (!contextManagerRef.current || !effectProcessorRef.current || !audioFile) return null;
     const context = contextManagerRef.current.getContext();
     await contextManagerRef.current.resumeContext();
+
+    // Clean up previous nodes properly to prevent double playback
+    if (sourceRef.current) {
+      try {
+        sourceRef.current.stop();
+        sourceRef.current.disconnect();
+      } catch {
+        // Ignore errors if already stopped
+      }
+      sourceRef.current = null;
+    }
+    
+    if (gainNodeRef.current) {
+      try {
+        gainNodeRef.current.disconnect();
+      } catch {
+        // Ignore errors
+      }
+      gainNodeRef.current = null;
+    }
+    
+    // For the analyser, we'll disconnect but keep the reference
+    // This helps the spectrograms to maintain visualization
+    if (analyserRef.current) {
+      try {
+        analyserRef.current.disconnect();
+      } catch {
+        // Ignore errors
+      }
+      // Don't nullify the reference - we'll reuse it to maintain visualization state
+    }
 
     const source = context.createBufferSource();
     source.buffer = audioFile.audioBuffer;
@@ -116,6 +150,9 @@ export default function AnalysisPage() {
     sourceRef.current = source;
     gainNodeRef.current = gainNode;
     analyserRef.current = analyser;
+    
+    // Increment analyser version to trigger component remounts
+    setAnalyserVersion(prev => prev + 1);
 
     return source;
   }, [audioFile, playbackRate]);
@@ -123,23 +160,48 @@ export default function AnalysisPage() {
   const play = useCallback(async () => {
     if (isPlaying || !audioFile) return;
     try {
+      // Always recreate audio nodes to ensure a fresh analyser
       const source = await createAudioNodes();
       if (!source || !contextManagerRef.current) return;
+      
       const currentTimeValue = pauseTimeRef.current;
       source.start(0, currentTimeValue);
       startTimeRef.current = contextManagerRef.current.getCurrentTime() - currentTimeValue;
+      
       source.onended = () => {
         if (currentTime >= audioFile.duration - 0.1) {
           setIsPlaying(false);
           setCurrentTime(0);
           pauseTimeRef.current = 0;
+          
+          // We DON'T nullify the analyser here
+          // This allows visualization to continue even after playback ends
+          
+          // Increment analyzer version to make sure components stay responsive
+          setAnalyserVersion(prev => prev + 1);
         }
       };
+      
       setIsPlaying(true);
     } catch (e) {
       console.error("Error playing audio:", e);
+      // Try to create audio nodes anyway for visualization
+      createAudioNodes().catch(err => console.error("Failed to create audio nodes:", err));
     }
   }, [isPlaying, createAudioNodes, currentTime, audioFile]);
+
+  // Initialize audio nodes when audio file changes - but only once
+  useEffect(() => {
+    if (audioFile && contextManagerRef.current && !analyserRef.current) {
+      // Create audio nodes only if we don't have an analyser yet
+      createAudioNodes().catch(err => console.error("Failed to initialize audio nodes:", err));
+    }
+    
+    // Always ensure we have an analyzer node, even when playback has ended
+    return () => {
+      // We don't set analyserRef.current = null here to allow visualization to continue
+    };
+  }, [audioFile, createAudioNodes]);
 
   const pause = useCallback(() => {
     if (!isPlaying || !sourceRef.current || !contextManagerRef.current) return;
@@ -156,12 +218,38 @@ export default function AnalysisPage() {
     (time: number) => {
       if (!audioFile) return;
       const wasPlaying = isPlaying;
-      if (wasPlaying) pause();
+      
+      // Store the current analyser node reference to preserve it
+      const currentAnalyser = analyserRef.current;
+      
+      if (wasPlaying) {
+        pause();
+      }
+      
       pauseTimeRef.current = Math.max(0, Math.min(time, audioFile.duration));
       setCurrentTime(pauseTimeRef.current);
-      if (wasPlaying) setTimeout(play, 50);
+      
+      // If was playing, recreate audio nodes and resume
+      if (wasPlaying) {
+        // Recreate and play with short delay to ensure clean state
+        setTimeout(async () => {
+          await createAudioNodes();
+          play();
+        }, 50);
+      } else {
+        // Even if not playing, we should ensure the analyser is available for visualization
+        if (!analyserRef.current) {
+          createAudioNodes();
+        }
+      }
+      
+      // If for some reason we lost the analyser during seeking, trigger a version update
+      // This forces the spectrogram components to remount and reconnect
+      if (currentAnalyser !== analyserRef.current) {
+        setAnalyserVersion(prev => prev + 1);
+      }
     },
-    [isPlaying, pause, play, audioFile]
+    [isPlaying, pause, play, audioFile, createAudioNodes]
   );
 
   // Menu items for navigation (excluding current page)
@@ -215,12 +303,17 @@ export default function AnalysisPage() {
             <div className="visualizer-container">
               <div className="spectrogram-container">
                 <div className="spectrogram-2d">
-                  <Spectrogram analyser={analyserRef.current} isPlaying={isPlaying} />
+                  <Spectrogram 
+                    analyser={analyserRef.current} 
+                    isPlaying={isPlaying} 
+                    key={`spec2d-${analyserVersion}`}
+                  />
                 </div>
                 <div className="spectrogram-3d">
                   <Spectrogram3D 
                     analyser={analyserRef.current} 
                     isPlaying={isPlaying}
+                    key={`spec3d-${analyserVersion}`}
                   />
                 </div>
               </div>
