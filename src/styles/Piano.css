@@ -1,0 +1,331 @@
+/* Piano Keyboard Styles */
+.piano-container {
+  width: 100%;
+  padding: 20px;
+  background: linear-gradient(to bottom, #333, #222);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  margin-top: 30px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.piano-container:hover {
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.piano-title {
+  color: white;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.piano {
+  display: flex;
+  position: relative;
+  margin: 0 auto;
+  height: 200px;
+  max-width: 1000px;
+  background: #111;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+  border: 1px solid #000;
+}
+
+.white-key-wrapper {
+  position: relative;
+  height: 100%;
+  flex: 1;
+  display: flex;
+  border-right: 1px solid #000;
+}
+
+.white-key-wrapper:last-child {
+  border-right: none;
+}
+
+.key {
+  cursor: pointer;
+  position: relative;
+  transition: all 0.1s ease;
+  box-sizing: border-box;
+}
+
+.white {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, #fff, #f0f0f0);
+  border: 1px solid #aaa;
+  border-radius: 0 0 5px 5px;
+  z-index: 1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.black {
+  position: absolute;
+  top: 0;
+  right: -30%;
+  width: 60%;
+  height: 60%;
+  background: linear-gradient(to bottom, #222, #000);
+  border: 1px solid #000;
+  border-radius: 0 0 3px 3px;
+  z-index: 2;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.5);
+}
+
+.key.active {
+  box-shadow: 0 0 15px rgba(255, 107, 107, 0.9);
+}
+
+.white.active {
+  background: linear-gradient(to bottom, #ffe1e1, #ffbaba);
+  transform: translateY(2px);
+}
+
+.black.active {
+  background: linear-gradient(to bottom, #ff8a8a, #ff5252);
+  transform: translateY(2px);
+}
+
+/* Synth Controls */
+.synth-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(to right, #1a1a1a, #232323);
+  border-radius: 8px;
+  margin-top: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.3);
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.control-label {
+  color: #ddd;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+}
+
+.control-row input[type="range"] {
+  flex: 1;
+  height: 6px;
+  background: #444;
+  outline: none;
+  border-radius: 10px;
+  margin-right: 10px;
+}
+
+.control-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #5227FF;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.control-value {
+  color: #fff;
+  width: 40px;
+  text-align: right;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+select {
+  padding: 8px 12px;
+  background: #333;
+  color: white;
+  border: 1px solid #444;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+select:hover {
+  background: #3a3a3a;
+  border-color: #5227FF;
+}
+
+/* Keyboard Legend */
+.keyboard-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+  color: #bbb;
+  font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.key-mapping {
+  display: flex;
+  align-items: center;
+  margin: 0 5px;
+}
+
+.key-cap {
+  display: inline-block;
+  padding: 4px 8px;
+  background: linear-gradient(to bottom, #444, #333);
+  border-radius: 4px;
+  margin-right: 8px;
+  color: white;
+  font-family: monospace;
+  font-weight: bold;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+  border: 1px solid #555;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .piano {
+    height: 150px;
+  }
+  
+  .synth-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+    padding: 15px;
+  }
+  
+  .control-group {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .keyboard-legend {
+    padding: 10px;
+    gap: 8px;
+  }
+  
+  .key-mapping {
+    margin: 0 2px;
+  }
+  
+  .key-cap {
+    padding: 3px 6px;
+    margin-right: 4px;
+  }
+}
+
+@media (max-width: 576px) {
+  .piano {
+    height: 120px;
+  }
+  
+  .piano-title, .spectrogram-title {
+    font-size: 1.2rem;
+  }
+  
+  .piano-container {
+    padding: 15px;
+  }
+  
+  .white-key-wrapper {
+    margin: 0 1px;
+  }
+  
+  .white {
+    border-radius: 0 0 4px 4px;
+  }
+  
+  .black {
+    height: 55%;
+    width: 70%;
+    right: -35%;
+  }
+  
+  .keyboard-legend {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+}
+
+/* Spectrograms Container */
+.spectrograms-container {
+  margin-bottom: 30px;
+}
+
+/* Spectrogram Section */
+.spectrogram-section {
+  width: 100%;
+  height: 200px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.spectrogram-section:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  border-color: rgba(82, 39, 255, 0.3);
+}
+
+.spectrogram-title {
+  color: white;
+  padding: 10px;
+  text-align: center;
+  font-size: 1.2rem;
+  background: linear-gradient(to right, rgba(82, 39, 255, 0.3), rgba(177, 158, 239, 0.1));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile adjustments for spectrograms */
+@media (max-width: 768px) {
+  .spectrograms-container .row {
+    margin: 0 -10px;
+  }
+  
+  .spectrograms-container .col-md-6 {
+    padding: 0 10px;
+  }
+  
+  .spectrogram-section {
+    height: 150px;
+    margin-bottom: 15px;
+  }
+}
+
+.no-select {
+  user-select: none;
+}
