@@ -192,7 +192,7 @@ export default function AnalysisPage() {
         onMenuClose={() => console.log('Menu closed')}
       />
 
-      <div className="analysis-container">
+      <div className="analysis-container mt-5">
         {!audioFile && (
           <div className="uploader-container">
             <AudioUploader onFileLoad={handleFileUpload} onError={handleFileError} />
@@ -229,53 +229,44 @@ export default function AnalysisPage() {
               </div>
               
               <div className="audio-stats-container">
-                <div className="stats-header">Audio Analysis</div>
                 <div className="stats-grid">
                   {/* Basic Audio Information */}
-                  <div className="stat-card">
-                    <div className="stat-title">Duration</div>
-                    <div className="stat-value">{audioFile.duration.toFixed(2)}s</div>
-                  </div>
-                  
-                  <div className="stat-card">
-                    <div className="stat-title">Sample Rate</div>
-                    <div className="stat-value">{audioFile.sampleRate} Hz</div>
-                  </div>
-                  
-                  <div className="stat-card">
-                    <div className="stat-title">Channels</div>
-                    <div className="stat-value">{audioFile.channels}</div>
-                  </div>
-
-                  {/* Analysis Results */}
+                  <div className="rowy gap-2">
                   {analysisResults && (
                     <>
-                      <div className="stat-card">
+                      {/* <div className="stat-card">
                         <div className="stat-title">Energy</div>
                         <div className="stat-value">{analysisResults.temporalFeatures.energy.toFixed(3)}</div>
-                      </div>
+                      </div> */}
                       
-                      <div className="stat-card">
-                        <div className="stat-title">RMS</div>
-                        <div className="stat-value">{analysisResults.temporalFeatures.rms.toFixed(3)}</div>
-                      </div>
-                      
-                      <div className="stat-card">
-                        <div className="stat-title">Pitch</div>
+                      <div className="stat-card px-5">
                         <div className="stat-value">{analysisResults.harmonicFeatures.pitch.toFixed(0)} Hz</div>
-                      </div>
-                      
+                        <div className="stat-title">Pitch</div>
+                      </div>  
                       <div className="stat-card">
-                        <div className="stat-title">Harmonicity</div>
                         <div className="stat-value">{analysisResults.harmonicFeatures.harmonicity.toFixed(3)}</div>
+                        <div className="stat-title">Harmonicity</div>
                       </div>
-                      
                       <div className="stat-card">
-                        <div className="stat-title">Inharmonicity</div>
-                        <div className="stat-value">{analysisResults.harmonicFeatures.inharmonicity.toFixed(3)}</div>
-                      </div>
+                        <div className="stat-value">{analysisResults.temporalFeatures.rms.toFixed(3)}</div>
+                        <div className="stat-title">RMS</div>
+                      </div>        
                     </>
                   )}
+                  </div>
+                  
+                </div>
+                
+                {/* Oscilloscope Coming Soon Section */}
+                <div className="oscilloscope-container">
+                  <div className="oscilloscope-header">
+                    <span className="oscilloscope-title">Oscilloscope</span>
+                    <span className="coming-soon-badge">Coming Soon</span>
+                  </div>
+                  <div className="oscilloscope-placeholder">
+                    <div className="oscilloscope-line"></div>
+                    <div className="oscilloscope-text">Real-time waveform visualization</div>
+                  </div>
                 </div>
               </div>
             </div>

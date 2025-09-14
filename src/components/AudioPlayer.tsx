@@ -294,7 +294,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <div className="progress-container">
         <WaveformVisualizer
           audioFile={audioFile}
-          width={undefined}
+          width={undefined} // Let it use container width
           height={60}
           currentTime={currentTime}
           onSeek={seek}

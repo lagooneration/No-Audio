@@ -97,6 +97,14 @@
   width: 100%;
   height: auto;
   min-height: 50px;
+  max-height: 80px;
+  position: relative;
+}
+
+.audio-player-waveform {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1;
 }
 
 /* Audio Player Waveform Integration */
@@ -373,6 +381,47 @@
 
 .dark .play-pause-btn:hover, .dark .stop-btn:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive waveform adjustments */
+@media (max-width: 767px) {
+  .progress-container {
+    max-height: 60px;
+  }
+  
+  .waveform-container {
+    max-height: 60px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .progress-container {
+    max-height: 70px;
+  }
+  
+  .waveform-container {
+    max-height: 70px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .progress-container {
+    max-height: 80px;
+  }
+  
+  .waveform-container {
+    max-height: 80px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .progress-container {
+    max-height: 100px;
+  }
+  
+  .waveform-container {
+    max-height: 100px;
+  }
 }
 
 .dark .progress-bar {

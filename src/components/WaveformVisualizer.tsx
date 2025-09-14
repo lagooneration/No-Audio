@@ -52,22 +52,38 @@ export const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
     generateWaveform();
   }, [audioFile, samples]);
 
-  // Handle container resize
+  // Handle container resize with ResizeObserver for better responsiveness
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         setCanvasSize({
-          width: width || rect.width,
-          height: height,
+          width: rect.width, // Always use container width for full responsiveness
+          height: height || rect.height,
         });
       }
     };
 
+    // Use ResizeObserver for more accurate size tracking
+    let resizeObserver: ResizeObserver | null = null;
+    if (containerRef.current && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        updateSize();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Fallback to window resize event
     updateSize();
     window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, [width, height]);
+    
+    return () => {
+      window.removeEventListener('resize', updateSize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [height]);
 
   // Draw waveform
   const drawWaveform = useCallback(() => {
