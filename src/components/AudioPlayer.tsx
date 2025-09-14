@@ -290,7 +290,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         <WaveformVisualizer
           audioFile={audioFile}
           width={undefined}
-          height={60}
+          height={80}
           currentTime={currentTime}
           onSeek={seek}
           showProgress={true}

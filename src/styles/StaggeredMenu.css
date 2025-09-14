@@ -6,6 +6,23 @@
   pointer-events: none;
 }
 
+/* Backdrop overlay when menu is open */
+.staggered-menu-wrapper[data-open]::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 1004;
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
 .staggered-menu-header {
   position: fixed;
   top: 0;
@@ -130,6 +147,7 @@
   padding: 6em 2em 2em 2em;
   overflow-y: auto;
   z-index: 1005;
+  pointer-events: auto;
 }
 
 [data-position='left'] .staggered-menu-panel {
@@ -264,10 +282,12 @@
   text-transform: uppercase;
   transition:
     background 0.25s,
-    color 0.25s;
+    color 0.25s,
+    transform 0.2s;
   display: inline-block;
   text-decoration: none;
   padding-right: 1.4em;
+  outline: none;
 }
 
 .staggered-menu-panel .sm-socials-list .sm-socials-link {
@@ -296,6 +316,14 @@
 
 .sm-panel-item:hover {
   color: var(--sm-accent, #5227ff);
+  transform: translateX(8px);
+}
+
+.sm-panel-item:focus-visible {
+  color: var(--sm-accent, #5227ff);
+  transform: translateX(8px);
+  outline: 2px solid var(--sm-accent, #5227ff);
+  outline-offset: 4px;
 }
 
 .sm-panel-list[data-numbering] {
@@ -322,6 +350,11 @@
     width: 100%;
     left: 0;
     right: 0;
+    padding: 5em 1.5em 1.5em 1.5em;
+  }
+
+  .sm-panel-item {
+    font-size: 2.8rem;
   }
 
   .staggered-menu-wrapper[data-open] .sm-logo-img {
@@ -334,6 +367,16 @@
     width: 100%;
     left: 0;
     right: 0;
+    padding: 4em 1em 1em 1em;
+  }
+
+  .sm-panel-item {
+    font-size: 2.2rem;
+    letter-spacing: -1px;
+  }
+
+  .staggered-menu-header {
+    padding: 1.5em;
   }
 
   .staggered-menu-wrapper[data-open] .sm-logo-img {

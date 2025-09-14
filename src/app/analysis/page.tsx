@@ -176,7 +176,8 @@ export default function AnalysisPage() {
   const menuItems = getMenuItemsForPage('/analysis');
 
   return (
-    <main>
+    <main className="min-h-screen relative">
+      {/* StaggeredMenu with proper z-index */}
       <StaggeredMenu
         position="right"
         items={menuItems}
@@ -192,7 +193,7 @@ export default function AnalysisPage() {
         onMenuOpen={() => console.log('Menu opened')}
         onMenuClose={() => console.log('Menu closed')}
       />
-      
+
       <div 
         className="min-h-screen" 
         style={{ 
@@ -200,7 +201,7 @@ export default function AnalysisPage() {
           paddingTop: '0'
         }}
       >
-        <div className="container mx-auto px-4 lg:h-screen lg:overflow-hidden">
+        <div className="container mx-auto p-5 lg:h-screen lg:overflow-hidden">
 
       <div className="max-w-7xl mx-auto flex flex-col gap-4 py-6 overflow-y-auto lg:overflow-hidden">
         {!audioFile && (
