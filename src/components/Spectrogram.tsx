@@ -115,7 +115,6 @@ export const Spectrogram: React.FC<SpectrogramProps> = ({
     <div className={`spectrogram-container ${className}`}>
       <canvas ref={canvasRef} className="spectrogram-canvas" />
       <div className="spectrogram-label">
-        2D Spectrogram
         {analyser ? (
           <span className="spectrogram-status status-active"></span>
         ) : (

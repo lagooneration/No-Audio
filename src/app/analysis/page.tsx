@@ -20,12 +20,6 @@ import "@/styles/AudioPlayer.css";
 import "@/styles/Spectrogram.css";
 import "@/styles/Spectrogram3D.css";
 import "./analysis.css";
-import "@/styles/Spectrogram3D.css";
-import "./analysis.css";
-import "@/styles/Spectrogram3D.css";
-
-// Create a CSS file for the analysis page
-import "./analysis.css";
 
 export default function AnalysisPage() {
   const [audioFile, setAudioFile] = useState<AudioFile | null>(null);
@@ -187,7 +181,7 @@ export default function AnalysisPage() {
         changeMenuColorOnOpen={true}
         colors={['#B19EEF', '#5227FF']}
         logoUrl="/logo.svg"
-        accentColor="#ff6b6b"
+        accentColor="#630fffff"
         onMenuOpen={() => console.log('Menu opened')}
         onMenuClose={() => console.log('Menu closed')}
       />
@@ -224,7 +218,10 @@ export default function AnalysisPage() {
                   <Spectrogram analyser={analyserRef.current} isPlaying={isPlaying} />
                 </div>
                 <div className="spectrogram-3d">
-                  <Spectrogram3D />
+                  <Spectrogram3D 
+                    analyser={analyserRef.current} 
+                    isPlaying={isPlaying}
+                  />
                 </div>
               </div>
               
@@ -254,7 +251,6 @@ export default function AnalysisPage() {
                     </>
                   )}
                   </div>
-                  
                 </div>
                 
                 {/* Oscilloscope Coming Soon Section */}
