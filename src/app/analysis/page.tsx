@@ -67,21 +67,100 @@ export default function AnalysisPage() {
     };
   }, []);
 
+  // Clean up previous nodes properly to prevent double playback
+  const cleanupAudioNodes = useCallback(() => {
+    // Stop all active sources from the context manager first
+    if (contextManagerRef.current) {
+      contextManagerRef.current.stopAllActiveSources();
+    }
+    
+    // Clean up source node
+    if (sourceRef.current) {
+      try {
+        sourceRef.current.stop();
+        sourceRef.current.disconnect();
+      } catch {
+        // Ignore errors if already stopped
+      }
+      sourceRef.current = null;
+    }
+    
+    // Clean up gain node
+    if (gainNodeRef.current) {
+      try {
+        gainNodeRef.current.disconnect();
+      } catch {
+        // Ignore errors
+      }
+      gainNodeRef.current = null;
+    }
+    
+    // For the analyser, we'll disconnect but keep the reference
+    if (analyserRef.current) {
+      try {
+        analyserRef.current.disconnect();
+      } catch {
+        // Ignore errors
+      }
+      // We keep the reference for visualization purposes
+    }
+  }, []);
+
   const updateTime = useCallback(() => {
-    if (isPlaying && contextManagerRef.current && audioFile) {
-      const elapsed =
-        contextManagerRef.current.getCurrentTime() - startTimeRef.current + pauseTimeRef.current;
+    if (!contextManagerRef.current || !audioFile) return;
+    
+    // Only update time if the context manager also thinks we're playing
+    if (isPlaying && contextManagerRef.current.getPlayingState()) {
+      // Check if audio context is actually running
+      const context = contextManagerRef.current.getAudioContext();
+      if (context && context.state !== 'running') {
+        console.log(`AudioContext state is ${context.state} but we think we're playing - resuming`);
+        contextManagerRef.current.resumeContext().catch(err => console.warn("Failed to resume context:", err));
+      }
+      
+      // Use the context manager's elapsed time calculation which accounts for pauses
+      const elapsed = contextManagerRef.current.calculateElapsedTime();
       const newCurrentTime = Math.min(elapsed, audioFile.duration);
-      setCurrentTime(newCurrentTime);
-      if (newCurrentTime >= audioFile.duration) {
+      
+      // Update UI time only if it's significantly different to reduce renders
+      if (Math.abs(newCurrentTime - currentTime) > 0.01) {
+        setCurrentTime(newCurrentTime);
+      }
+      
+      // Check if we've reached the end (with a small threshold to account for precision)
+      if (Math.abs(newCurrentTime - audioFile.duration) < 0.1) {
+        console.log("Animation loop detected end of audio");
+        
+        // Stop playback completely
+        cleanupAudioNodes();
+        
+        // Reset state
         setIsPlaying(false);
         setCurrentTime(0);
         pauseTimeRef.current = 0;
+        startTimeRef.current = 0;
+        
+        // Update context manager
+        contextManagerRef.current.setPlayingState(false);
+        
+        // Trigger an analyzer version update
+        setAnalyserVersion(prev => prev + 1);
       } else {
+        // Continue animation loop
         animationFrameRef.current = requestAnimationFrame(updateTime);
       }
+    } else if (isPlaying) {
+      // Our state thinks we're playing but context manager doesn't - fix inconsistency
+      console.warn("Playback state mismatch detected - resetting state");
+      setIsPlaying(false);
+      
+      // Ensure clean state
+      cleanupAudioNodes();
+      
+      // Update analyzer version to refresh visualizations
+      setAnalyserVersion(prev => prev + 1);
     }
-  }, [isPlaying, audioFile]);
+  }, [isPlaying, audioFile, cleanupAudioNodes, currentTime]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -93,42 +172,14 @@ export default function AnalysisPage() {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
   }, [isPlaying, updateTime]);
-  
+
   const createAudioNodes = useCallback(async () => {
     if (!contextManagerRef.current || !effectProcessorRef.current || !audioFile) return null;
     const context = contextManagerRef.current.getContext();
     await contextManagerRef.current.resumeContext();
 
-    // Clean up previous nodes properly to prevent double playback
-    if (sourceRef.current) {
-      try {
-        sourceRef.current.stop();
-        sourceRef.current.disconnect();
-      } catch {
-        // Ignore errors if already stopped
-      }
-      sourceRef.current = null;
-    }
-    
-    if (gainNodeRef.current) {
-      try {
-        gainNodeRef.current.disconnect();
-      } catch {
-        // Ignore errors
-      }
-      gainNodeRef.current = null;
-    }
-    
-    // For the analyser, we'll disconnect but keep the reference
-    // This helps the spectrograms to maintain visualization
-    if (analyserRef.current) {
-      try {
-        analyserRef.current.disconnect();
-      } catch {
-        // Ignore errors
-      }
-      // Don't nullify the reference - we'll reuse it to maintain visualization state
-    }
+    // Clean up previous nodes to prevent double playback
+    cleanupAudioNodes();
 
     const source = context.createBufferSource();
     source.buffer = audioFile.audioBuffer;
@@ -155,40 +206,89 @@ export default function AnalysisPage() {
     setAnalyserVersion(prev => prev + 1);
 
     return source;
-  }, [audioFile, playbackRate]);
+  }, [audioFile, playbackRate, cleanupAudioNodes]);
 
   const play = useCallback(async () => {
-    if (isPlaying || !audioFile) return;
+    if (!audioFile) return;
+    
+    console.log(`Play called. Current time: ${currentTime}, Pause time: ${pauseTimeRef.current}`);
+    
     try {
-      // Always recreate audio nodes to ensure a fresh analyser
-      const source = await createAudioNodes();
-      if (!source || !contextManagerRef.current) return;
+      // If audio previously completed playback and is at the end or close to it
+      const isAtEnd = Math.abs(currentTime - audioFile.duration) < 0.1;
+      if (isAtEnd) {
+        console.log("Restarting playback from beginning after completion");
+        pauseTimeRef.current = 0;
+        setCurrentTime(0);
+      }
       
+      // Always clean up existing nodes first to prevent double playback
+      cleanupAudioNodes();
+      
+      // Set the state BEFORE creating nodes to prevent race conditions
+      setIsPlaying(true);
+      
+      // Then create new audio nodes
+      const source = await createAudioNodes();
+      if (!source || !contextManagerRef.current) {
+        // If we failed to create nodes, reset state
+        setIsPlaying(false);
+        return;
+      }
+      
+      // Make sure we resume the context
+      await contextManagerRef.current.resumeContext();
+      
+      // Use pauseTimeRef.current to start from the correct position
       const currentTimeValue = pauseTimeRef.current;
+      console.log(`Starting playback from: ${currentTimeValue}`);
+      
+      // Register the source with the context manager - pass the start offset for accurate time tracking
+      contextManagerRef.current.registerSource(source, currentTimeValue);
+      contextManagerRef.current.setPlayingState(true);
+      
+      // Start playback from the pause position
       source.start(0, currentTimeValue);
-      startTimeRef.current = contextManagerRef.current.getCurrentTime() - currentTimeValue;
+      
+      // Record the start time to calculate elapsed time later
+      startTimeRef.current = contextManagerRef.current.getCurrentTime();
       
       source.onended = () => {
-        if (currentTime >= audioFile.duration - 0.1) {
+        // When audio naturally ends, we need to perform a complete cleanup
+        // This check makes sure we don't trigger this for seek operations
+        // We use a small threshold (0.1s) to account for floating point imprecision
+        if (Math.abs(pauseTimeRef.current - audioFile.duration) < 0.1 || 
+            Math.abs(currentTime - audioFile.duration) < 0.1) {
+          console.log("Audio reached end naturally");
+          
+          // Perform full cleanup
+          cleanupAudioNodes();
+          
+          // Reset all state
           setIsPlaying(false);
           setCurrentTime(0);
           pauseTimeRef.current = 0;
+          startTimeRef.current = 0;
           
-          // We DON'T nullify the analyser here
-          // This allows visualization to continue even after playback ends
+          // Update context manager state
+          if (contextManagerRef.current) {
+            contextManagerRef.current.setPlayingState(false);
+          }
           
-          // Increment analyzer version to make sure components stay responsive
+          // Trigger an analyzer version update to refresh visualizations
           setAnalyserVersion(prev => prev + 1);
         }
       };
-      
-      setIsPlaying(true);
     } catch (e) {
       console.error("Error playing audio:", e);
-      // Try to create audio nodes anyway for visualization
+      // Reset state on error
+      setIsPlaying(false);
+      
+      // Cleanup and try to create audio nodes anyway for visualization
+      cleanupAudioNodes();
       createAudioNodes().catch(err => console.error("Failed to create audio nodes:", err));
     }
-  }, [isPlaying, createAudioNodes, currentTime, audioFile]);
+  }, [createAudioNodes, currentTime, audioFile, cleanupAudioNodes]);
 
   // Initialize audio nodes when audio file changes - but only once
   useEffect(() => {
@@ -204,52 +304,85 @@ export default function AnalysisPage() {
   }, [audioFile, createAudioNodes]);
 
   const pause = useCallback(() => {
-    if (!isPlaying || !sourceRef.current || !contextManagerRef.current) return;
-    sourceRef.current.stop();
-    pauseTimeRef.current =
-      contextManagerRef.current.getCurrentTime() - startTimeRef.current + pauseTimeRef.current;
+    if (!isPlaying) return;
+    
+    console.log("Pausing audio playback");
+    
+    // Calculate current pause time before stopping
+    if (contextManagerRef.current) {
+      // Use the AudioContext's current time for precision
+      const audioContextTime = contextManagerRef.current.getCurrentTime();
+      pauseTimeRef.current = audioContextTime - startTimeRef.current + pauseTimeRef.current;
+      console.log(`Pause time calculated: ${pauseTimeRef.current}`);
+      
+      // Also suspend the audio context to ensure it stops completely
+      contextManagerRef.current.suspendContext().catch(err => {
+        console.warn("Failed to suspend audio context:", err);
+      });
+    }
+    
+    // Stop all playback
+    cleanupAudioNodes();
+    
+    // Update context manager state
+    if (contextManagerRef.current) {
+      contextManagerRef.current.setPlayingState(false);
+    }
+    
+    // Update component state
     setIsPlaying(false);
-    sourceRef.current = null;
-  }, [isPlaying]);
+    
+    // Cancel any pending animation frames to stop time updates
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  }, [isPlaying, cleanupAudioNodes]);
 
   // CardNav toggle removed; AudioPlayer handles play state internally
 
   const seek = useCallback(
     (time: number) => {
       if (!audioFile) return;
+      
+      console.log(`Seeking to time: ${time}`);
+      
+      // Record if we were playing before seeking
       const wasPlaying = isPlaying;
       
-      // Store the current analyser node reference to preserve it
-      const currentAnalyser = analyserRef.current;
-      
-      if (wasPlaying) {
+      // Always stop current playback first
+      if (isPlaying) {
+        // If we were playing, pause first to update pauseTimeRef
         pause();
       }
       
+      // Always clean up existing nodes to prevent double playback
+      cleanupAudioNodes();
+      
+      // Update time position
       pauseTimeRef.current = Math.max(0, Math.min(time, audioFile.duration));
       setCurrentTime(pauseTimeRef.current);
       
-      // If was playing, recreate audio nodes and resume
-      if (wasPlaying) {
-        // Recreate and play with short delay to ensure clean state
-        setTimeout(async () => {
-          await createAudioNodes();
-          play();
-        }, 50);
-      } else {
-        // Even if not playing, we should ensure the analyser is available for visualization
-        if (!analyserRef.current) {
-          createAudioNodes();
-        }
+      // Force context manager to recognize state change
+      if (contextManagerRef.current) {
+        contextManagerRef.current.setPlayingState(false);
       }
       
-      // If for some reason we lost the analyser during seeking, trigger a version update
-      // This forces the spectrogram components to remount and reconnect
-      if (currentAnalyser !== analyserRef.current) {
-        setAnalyserVersion(prev => prev + 1);
-      }
+      // Use setTimeout to ensure state updates have propagated
+      setTimeout(async () => {
+        // Always recreate audio nodes for fresh state
+        await createAudioNodes();
+        
+        // If we were playing before, resume playback
+        if (wasPlaying) {
+          play();
+        } else {
+          // Just update analyzer version to ensure spectrograms reconnect
+          setAnalyserVersion(prev => prev + 1);
+        }
+      }, 50);
     },
-    [isPlaying, pause, play, audioFile, createAudioNodes]
+    [isPlaying, pause, play, audioFile, createAudioNodes, cleanupAudioNodes]
   );
 
   // Menu items for navigation (excluding current page)
@@ -319,6 +452,20 @@ export default function AnalysisPage() {
               </div>
               
               <div className="audio-stats-container">
+                {/* Oscilloscope Coming Soon Section */}
+                <div className="oscilloscope-container">
+                  <div className="oscilloscope-header">
+                    <span className="oscilloscope-title">Oscilloscope</span>
+                    <span className="coming-soon-badge">Coming Soon</span>
+                  </div>
+                  <div className="oscilloscope-placeholder">
+                    <div className="oscilloscope-line"></div>
+                    <div className="oscilloscope-text">Real-time waveform visualization</div>
+                  </div>
+                </div>
+                
+                
+                
                 <div className="stats-grid">
                   {/* Basic Audio Information */}
                   <div className="rowy gap-2">
@@ -346,17 +493,7 @@ export default function AnalysisPage() {
                   </div>
                 </div>
                 
-                {/* Oscilloscope Coming Soon Section */}
-                <div className="oscilloscope-container">
-                  <div className="oscilloscope-header">
-                    <span className="oscilloscope-title">Oscilloscope</span>
-                    <span className="coming-soon-badge">Coming Soon</span>
-                  </div>
-                  <div className="oscilloscope-placeholder">
-                    <div className="oscilloscope-line"></div>
-                    <div className="oscilloscope-text">Real-time waveform visualization</div>
-                  </div>
-                </div>
+                
               </div>
             </div>
           </div>

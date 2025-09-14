@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import * as THREE from 'three';
 import "../styles/Spectrogram3D.css";
 
@@ -26,6 +26,10 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
   const dataRef = useRef<Uint8Array | null>(null);
   const heightsRef = useRef<Uint8Array | null>(null);
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
+  const prevPlayingRef = useRef<boolean>(false);
+  
+  // State to track if the overlay should be shown with delay control for better UX
+  const [showOverlay, setShowOverlay] = useState(!analyser);
 
   // Constants for the 3D grid
   const FREQUENCY_SAMPLES = 256;
@@ -241,7 +245,7 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
   };
 
   const updateGeometry = useCallback(() => {
-    if (!dataRef.current || !heightsRef.current || !meshRef.current || !analyser) return;
+    if (!heightsRef.current || !meshRef.current || !analyser) return;
 
     try {
       // Create a temporary array to store frequency data
@@ -250,42 +254,47 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
       // Get frequency data from audio analyser
       analyser.getByteFrequencyData(tempData);
       
-      // Copy the data to our ref
+      // Store current data
       if (dataRef.current) {
-        for (let i = 0; i < FREQUENCY_SAMPLES; i++) {
-          dataRef.current[i] = tempData[i];
-        }
+        dataRef.current.set(tempData);
       }
 
-      if (isPlaying) {
+      // Always process visualization regardless of play state
+      // This ensures we show data even when paused
+      const currentlyPlaying = isPlaying;
+
+      if (currentlyPlaying) {
         // Shift existing data to the left (scrolling effect) - only when playing
         const startVal = FREQUENCY_SAMPLES + 1;
         const endVal = N_VERTICES - startVal;
+        
+        // Shift all data
         heightsRef.current.copyWithin(0, startVal, N_VERTICES);
         
-        // Insert new data at the end
-        heightsRef.current.set(dataRef.current, endVal);
+        // Insert new data at the end (directly from tempData to avoid reference issues)
+        for (let i = 0; i < FREQUENCY_SAMPLES; i++) {
+          heightsRef.current[endVal + i] = tempData[i];
+        }
       } else {
-        // When not playing, create a static visualization
-        // Fill the entire heightsRef with the current frequency data
+        // When not playing, create a static visualization using the current frequency data
         for (let i = 0; i < TIME_SAMPLES + 1; i++) {
           const offset = i * (FREQUENCY_SAMPLES + 1);
           for (let j = 0; j < FREQUENCY_SAMPLES; j++) {
-            heightsRef.current[offset + j] = dataRef.current[j];
+            heightsRef.current[offset + j] = tempData[j];
           }
         }
       }
       
       // Update the geometry with new displacement values
       if (meshRef.current.geometry) {
-        meshRef.current.geometry.setAttribute(
-          'displacement', 
-          new THREE.Uint8BufferAttribute(heightsRef.current, 1)
-        );
+        const newDisplacementAttr = new THREE.Uint8BufferAttribute(heightsRef.current, 1);
+        meshRef.current.geometry.setAttribute('displacement', newDisplacementAttr);
         
         // Notify three.js that the attribute has been updated
         const displacementAttribute = meshRef.current.geometry.getAttribute('displacement');
-        displacementAttribute.needsUpdate = true;
+        if (displacementAttribute) {
+          displacementAttribute.needsUpdate = true;
+        }
       }
     } catch (error) {
       console.error('Error updating spectrogram geometry:', error);
@@ -295,10 +304,10 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
   const animate = useCallback(() => {
     if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
     
+    // Always request the next animation frame first to ensure smooth animation
     animationFrameRef.current = requestAnimationFrame(animate);
     
-    // Always update geometry when analyser is available
-    // This ensures visualization even when paused
+    // Always update geometry when analyser is available, regardless of play state
     if (analyser) {
       updateGeometry();
       
@@ -308,6 +317,13 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
         const radius = 25;
         cameraRef.current.position.x = Math.sin(time) * radius * 0.15;
         cameraRef.current.position.y = Math.cos(time) * radius * 0.05 + 10;
+        cameraRef.current.lookAt(0, 0, 0);
+      } else {
+        // Reset camera position when not playing
+        // We use a more static but still interesting view for paused state
+        cameraRef.current.position.x = 0;
+        cameraRef.current.position.y = 10;
+        cameraRef.current.position.z = 25;
         cameraRef.current.lookAt(0, 0, 0);
       }
     }
@@ -334,6 +350,48 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
       rendererRef.current.render(sceneRef.current, cameraRef.current);
     }
   }, []);
+
+  // Handle analyzer initialization and cleanup
+  useEffect(() => {
+    // When the analyzer changes (new audio source loaded)
+    if (analyser) {
+      console.log('New analyzer detected - resetting visualization data');
+      
+      // Reset the heights data
+      if (heightsRef.current) {
+        for (let i = 0; i < heightsRef.current.length; i++) {
+          heightsRef.current[i] = 0;
+        }
+      }
+      
+      // Reset the data array for frequency data
+      if (dataRef.current) {
+        dataRef.current.fill(0);
+      }
+      
+      // Update the mesh with reset data if it exists
+      if (meshRef.current && meshRef.current.geometry) {
+        // Create new buffer to force complete refresh
+        const newDisplacementAttr = new THREE.Uint8BufferAttribute(
+          new Uint8Array(heightsRef.current ? heightsRef.current.length : N_VERTICES), 
+          1
+        );
+        
+        meshRef.current.geometry.setAttribute('displacement', newDisplacementAttr);
+        
+        const displacement = meshRef.current.geometry.getAttribute('displacement');
+        if (displacement) {
+          displacement.needsUpdate = true;
+        }
+      }
+      
+      // Reset the play state tracking
+      prevPlayingRef.current = false;
+      
+      // Reset overlay state - let other effects handle showing it appropriately
+      setShowOverlay(!isPlaying);
+    }
+  }, [analyser, N_VERTICES, isPlaying]);
 
   // Initialize Three.js
   useEffect(() => {
@@ -392,10 +450,92 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
     };
   }, [initThreeJS, handleResize]);
 
+  // Handle overlay visibility with proper timing
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    
+    if (!analyser) {
+      // No analyzer means we're not ready - show the first overlay
+      setShowOverlay(true);
+    } else if (isPlaying) {
+      // Always hide overlay immediately when playing
+      setShowOverlay(false);
+      
+      // Clear any pending timers to ensure overlay doesn't appear during playback
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    } else if (analyser) {
+      // When not playing but with analyzer, use a delayed show
+      // This prevents flickering at the end of playback
+      timer = setTimeout(() => {
+        if (!isPlaying) { // Double-check that we're still not playing
+          setShowOverlay(true);
+        }
+      }, 500); // Increased delay to ensure playback fully completes
+    }
+    
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [analyser, isPlaying]);
+
+  // Reset heights when playback state changes
+  useEffect(() => {
+    // Only reset visualization when transitioning from non-playing to playing
+    if (isPlaying && !prevPlayingRef.current) {
+      console.log('Resetting visualization for new playback');
+      
+      // Clear the previous visualization data to start fresh
+      if (heightsRef.current) {
+        // Reset heights data
+        for (let i = 0; i < heightsRef.current.length; i++) {
+          heightsRef.current[i] = 0;
+        }
+      }
+      
+      // Reset the data array
+      if (dataRef.current) {
+        dataRef.current.fill(0);
+      }
+      
+      // Force immediate update of the geometry
+      if (meshRef.current && meshRef.current.geometry) {
+        // Create a new buffer attribute to ensure complete refresh
+        const newDisplacementAttr = new THREE.Uint8BufferAttribute(
+          new Uint8Array(heightsRef.current ? heightsRef.current.length : N_VERTICES), 
+          1
+        );
+        
+        meshRef.current.geometry.setAttribute('displacement', newDisplacementAttr);
+        
+        // Notify three.js that the attribute has been updated
+        const displacementAttribute = meshRef.current.geometry.getAttribute('displacement');
+        if (displacementAttribute) {
+          displacementAttribute.needsUpdate = true;
+        }
+      }
+    }
+    
+    // Update the previous state in cleanup to ensure correct detection of transitions
+    return () => {
+      prevPlayingRef.current = isPlaying;
+    };
+  }, [isPlaying, N_VERTICES]);
+
   // Start animation loop
   useEffect(() => {
     // Only start animation if component is mounted
     let isComponentMounted = true;
+    
+    // Make sure any previous animation is canceled
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
     
     // Define a local animation function that checks mounting state
     const safeAnimate = () => {
@@ -434,8 +574,16 @@ export const Spectrogram3D: React.FC<Spectrogram3DProps> = ({
           </p>
         </div>
       )}
-      {analyser && !isPlaying && (
-        <div className="spectrogram-3d-overlay" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+      {analyser && (
+        <div 
+          className="spectrogram-3d-overlay" 
+          style={{ 
+            backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+            opacity: showOverlay ? 1 : 0,
+            pointerEvents: showOverlay ? 'auto' : 'none',
+            transition: 'opacity 0.5s ease-in-out' // Smoother transition
+          }}
+        >
           <p className="spectrogram-3d-description">
             Press play to animate the spectrogram
           </p>

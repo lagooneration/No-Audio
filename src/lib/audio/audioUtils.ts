@@ -6,6 +6,11 @@ import { AudioFile, WaveformData, AudioAnalysis } from '@/types/audio';
 class AudioContextManager {
   private static instance: AudioContextManager;
   private audioContext: AudioContext | null = null;
+  private suspendedAt: number = 0;
+  private isPlaying: boolean = false;
+  private activeSources: AudioBufferSourceNode[] = [];
+  private lastPauseTime: number = 0;
+  private actualPlaybackStartTime: number = 0;
 
   private constructor() {}
 
@@ -23,18 +28,118 @@ class AudioContextManager {
     }
     return this.audioContext;
   }
+  
+  getAudioContext(): AudioContext | null {
+    return this.audioContext;
+  }
+
+  registerSource(source: AudioBufferSourceNode, startOffset: number = 0): void {
+    console.log(`AudioContextManager: Registering new source, offset: ${startOffset}`);
+    this.activeSources.push(source);
+    
+    // Update timekeeping for accurate elapsed time calculation
+    if (this.audioContext) {
+      this.actualPlaybackStartTime = this.audioContext.currentTime - startOffset;
+      this.lastPauseTime = startOffset;
+    }
+    
+    // Create a wrapper for the onended callback
+    const originalOnEnded = source.onended;
+    
+    // Replace with our own handler that manages our internal state
+    source.onended = (event) => {
+      console.log("AudioContextManager: Source ended");
+      
+      // Remove the source from our active sources
+      this.activeSources = this.activeSources.filter(s => s !== source);
+      
+      // If we have no more active sources, we're not playing
+      if (this.activeSources.length === 0) {
+        console.log("AudioContextManager: No active sources left, setting isPlaying to false");
+        this.isPlaying = false;
+        
+        // Also suspend the context to reduce CPU usage
+        this.suspendContext().catch(e => console.error("Failed to suspend context after all sources ended:", e));
+      }
+      
+      // Call the original onended if it exists
+      if (typeof originalOnEnded === 'function') {
+        originalOnEnded.call(source, event);
+      }
+    };
+  }
+  
+  stopAllActiveSources(): void {
+    // Stop all active sources
+    console.log(`AudioContextManager: Stopping ${this.activeSources.length} active sources`);
+    
+    this.activeSources.forEach(source => {
+      try {
+        source.stop();
+        source.disconnect();
+      } catch (e) {
+        // Ignore errors if already stopped
+        console.log("AudioContextManager: Error stopping source", e);
+      }
+    });
+    
+    // Clear the array
+    this.activeSources = [];
+    
+    // Since we've stopped all sources, we're not playing anymore
+    this.isPlaying = false;
+  }
 
   async resumeContext(): Promise<void> {
-    const context = this.getContext();
-    if (context.state === 'suspended') {
-      await context.resume();
+    if (!this.audioContext) return;
+    
+    console.log("Resuming AudioContext");
+    if (this.audioContext.state === 'suspended') {
+      try {
+        await this.audioContext.resume();
+        console.log("AudioContext resumed successfully");
+        
+        // Update actual playback start time to calculate elapsed time correctly
+        this.actualPlaybackStartTime = this.audioContext.currentTime - this.lastPauseTime;
+      } catch (error) {
+        console.error("Failed to resume AudioContext:", error);
+      }
     }
   }
 
+  async suspendContext(): Promise<void> {
+    if (!this.audioContext) return;
+    
+    console.log("Suspending AudioContext");
+    if (this.audioContext.state === 'running') {
+      try {
+        // Record the current time before suspending
+        this.suspendedAt = this.audioContext.currentTime;
+        this.lastPauseTime = this.calculateElapsedTime();
+        
+        await this.audioContext.suspend();
+        console.log("AudioContext suspended successfully");
+      } catch (error) {
+        console.error("Failed to suspend AudioContext:", error);
+      }
+    }
+  }
+  
+  // Calculate the actual playback time taking into account pauses
+  calculateElapsedTime(): number {
+    if (!this.audioContext) return 0;
+    
+    const rawElapsed = this.audioContext.currentTime - this.actualPlaybackStartTime;
+    return rawElapsed;
+  }
+
   async closeContext(): Promise<void> {
+    this.stopAllActiveSources();
     if (this.audioContext) {
       await this.audioContext.close();
       this.audioContext = null;
+      this.suspendedAt = 0;
+      this.isPlaying = false;
     }
   }
 
@@ -44,6 +149,38 @@ class AudioContextManager {
 
   getCurrentTime(): number {
     return this.getContext().currentTime;
+  }
+  
+  getSuspendedTime(): number {
+    return this.suspendedAt;
+  }
+  
+  setPlayingState(isPlaying: boolean): void {
+    console.log(`AudioContextManager: Setting isPlaying to ${isPlaying}`);
+    this.isPlaying = isPlaying;
+    
+    // Coordinate audio context state with playback state
+    if (isPlaying) {
+      this.resumeContext().catch(e => console.error("Failed to resume context on state change:", e));
+      this.actualPlaybackStartTime = this.audioContext ? this.audioContext.currentTime - this.lastPauseTime : 0;
+    } else {
+      if (this.audioContext && this.audioContext.state === 'running') {
+        this.suspendContext().catch(e => console.error("Failed to suspend context on state change:", e));
+      }
+    }
+  }
+  
+  getPlayingState(): boolean {
+    // Double-check our understanding of playing state against the actual context state
+    if (this.isPlaying && this.audioContext && this.audioContext.state !== 'running') {
+      console.warn("AudioContextManager state mismatch: isPlaying=true but context is not running");
+    }
+    
+    return this.isPlaying;
+  }
+  
+  getActiveSourceCount(): number {
+    return this.activeSources.length;
   }
 }
 
@@ -387,4 +524,5 @@ export const audioUtils = {
   },
 };
 
+// Export the AudioContextManager for use in other files
 export { AudioContextManager };

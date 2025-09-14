@@ -159,18 +159,41 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
     setIsLoading(true);
     try {
+      // Ensure any existing audio is properly stopped first
+      if (sourceRef.current) {
+        try {
+          sourceRef.current.stop();
+          sourceRef.current.disconnect();
+        } catch {
+          // Ignore errors if already stopped
+        }
+        sourceRef.current = null;
+      }
+      
+      // Create fresh audio nodes
       const source = await createAudioNodes();
       if (!source || !contextManagerRef.current) return;
 
+      // Register the source with the context manager for better tracking
+      contextManagerRef.current.registerSource(source);
+      
+      // Start playback from the correct position
       const currentTimeValue = pauseTimeRef.current;
       source.start(0, currentTimeValue);
       startTimeRef.current = contextManagerRef.current.getCurrentTime() - currentTimeValue;
 
+      // Update context manager's playing state
+      contextManagerRef.current.setPlayingState(true);
+      
       source.onended = () => {
         if (currentTime >= duration - 0.1) {
           setIsPlaying(false);
           setCurrentTime(0);
           pauseTimeRef.current = 0;
+          
+          // Update context manager's playing state
+          contextManagerRef.current.setPlayingState(false);
+          
           onEnded?.();
           if (loop && playFunctionRef.current) {
             setTimeout(() => {
@@ -195,20 +218,51 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   }, [play]);
 
   const pause = useCallback(() => {
-    if (!isPlaying || !sourceRef.current || !contextManagerRef.current) return;
+    if (!isPlaying || !contextManagerRef.current) return;
 
-    sourceRef.current.stop();
-    pauseTimeRef.current = contextManagerRef.current.getCurrentTime() - startTimeRef.current + pauseTimeRef.current;
+    // Calculate and store the current playback position properly
+    if (contextManagerRef.current) {
+      pauseTimeRef.current = contextManagerRef.current.getCurrentTime() - startTimeRef.current + pauseTimeRef.current;
+    }
+    
+    // Properly stop all active sources
+    if (contextManagerRef.current) {
+      contextManagerRef.current.stopAllActiveSources();
+      contextManagerRef.current.setPlayingState(false);
+    }
+    
+    // Clear our local reference
+    if (sourceRef.current) {
+      try {
+        sourceRef.current.stop();
+        sourceRef.current.disconnect();
+      } catch {
+        // Ignore errors if already stopped
+      }
+      sourceRef.current = null;
+    }
+    
     setIsPlaying(false);
     onPlayStateChange?.(false);
-    sourceRef.current = null;
   }, [isPlaying, onPlayStateChange]);
 
   const stop = useCallback(() => {
+    // Stop all audio playback and reset positions
+    if (contextManagerRef.current) {
+      contextManagerRef.current.stopAllActiveSources();
+      contextManagerRef.current.setPlayingState(false);
+    }
+    
     if (sourceRef.current) {
-      sourceRef.current.stop();
+      try {
+        sourceRef.current.stop();
+        sourceRef.current.disconnect();
+      } catch {
+        // Ignore errors if already stopped
+      }
       sourceRef.current = null;
     }
+    
     setIsPlaying(false);
     onPlayStateChange?.(false);
     setCurrentTime(0);
@@ -218,18 +272,41 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const seek = useCallback((time: number) => {
     const wasPlaying = isPlaying;
-    if (wasPlaying) {
-      pause();
+    
+    // Always stop current playback completely
+    if (contextManagerRef.current) {
+      contextManagerRef.current.stopAllActiveSources();
     }
+    
+    if (sourceRef.current) {
+      try {
+        sourceRef.current.stop();
+        sourceRef.current.disconnect();
+      } catch {
+        // Ignore errors if already stopped
+      }
+      sourceRef.current = null;
+    }
+    
+    // Update play position
     pauseTimeRef.current = Math.max(0, Math.min(time, duration));
     setCurrentTime(pauseTimeRef.current);
+    
     if (onSeek) {
       onSeek(pauseTimeRef.current);
     }
+    
+    // If it was playing, restart playback from new position after a short delay
+    // to ensure clean state
     if (wasPlaying) {
-      setTimeout(play, 50);
+      setIsPlaying(false);
+      setTimeout(() => {
+        play();
+      }, 50);
+    } else {
+      setIsPlaying(false);
     }
-  }, [isPlaying, pause, play, duration, onSeek]);
+  }, [isPlaying, play, duration, onSeek]);
 
   const togglePlayPause = useCallback(() => {
     if (isPlaying) {
